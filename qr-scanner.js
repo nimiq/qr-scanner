@@ -1,13 +1,9 @@
 class QrScanner extends XElement {
     onCreate() {
-        console.log('scanner init',this)
         this.$video = this.$('video');
         this.$canvas = this.$('canvas');
         this.$context = this.$canvas.getContext('2d');
         this.$video.addEventListener('play', () => this._drawOnCanvas(), false);
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-            .then(stream => this.$video.srcObject = stream)
-            .catch(console.error);
     }
 
     _drawOnCanvas() {
@@ -21,10 +17,39 @@ class QrScanner extends XElement {
         try {
             var decoded = qrscanner.decode();
             this.fire('x-decoded', decoded);
-            // console.log(decoded);
         } catch (e) {
             // no qr-code in this frame
         }
     }
+
+    set active(active) {
+        if (active)
+            this._cameraOn();
+        else
+            this._cameraOff();
+    }
+
+    _cameraOn() {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(stream => this.$video.srcObject = stream)
+            .catch(console.error);
+    }
+
+    _cameraOff() {
+        requestAnimationFrame(() => this.$video.srcObject.getTracks()[0].stop());
+    }
 }
 
+
+
+// const video = this.$('video');
+// navigator.mediaDevices.enumerateDevices()
+//     .then(function(devices) {
+//         devices.forEach(function(device) {
+//             console.log(device.kind + ": " + device.label +
+//                 " id = " + device.deviceId);
+//         });
+//     })
+// navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+//     .then(stream => video.srcObject = stream)
+//     .catch(console.error);
