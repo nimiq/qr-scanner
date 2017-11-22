@@ -31,12 +31,15 @@ class QrScanner extends XElement {
 
     _cameraOn() {
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-            .then(stream => this.$video.srcObject = stream)
+            .then(stream => {
+                this.$video.srcObject = stream
+            })
             .catch(console.error);
     }
 
     _cameraOff() {
-        requestAnimationFrame(() => this.$video.srcObject.getTracks()[0].stop());
+        this.$video.pause();
+        setTimeout(() => this.$video.srcObject.getTracks()[0].stop(), 3000);
     }
 }
 
