@@ -55,10 +55,11 @@
 
     .indicator {
         width: 100%;
-        height: 100%;
+        /*height: 100%;*/
         border-top: 3px solid #00f700;
         opacity: 0.5;
         box-sizing: border-box;
+        will-change:transform;
         animation: moveDown 2s infinite alternate ease-in-out;
     }
 
@@ -67,13 +68,14 @@
             transform: translateY(0);
         }
         to {
-            transform: translateY(100%);
+            transform: translateY(300px);
         }
     }
 
     @media (min-width: 1024px) {
         video {
-            transform: scale(-1.1, 1.1);
+            /*will-change:transform;*/
+            transform: scale(-1, 1);
             /* hack to flip the camera of desktops; less confusion for the user to position the phone */
         }
     }
@@ -135,12 +137,13 @@
     <a class="label">Test</a>
 </body>
 <script src="jsqrcode.min.js"></script>
-<script src="/x-element/x-element.js"></script>
+<script src="/x-element/src/x-element.js"></script>
 <script src="qr-scanner.js"></script>
 <script>
 var label = document.querySelector('.label');
 
 const scanner = new QrScanner();
+scanner.active = true;
 
 scanner.$el.addEventListener('x-decoded', (e) => {
     const decoded = e.detail;
