@@ -16,14 +16,14 @@ class QrScanner extends XElement {
             this.$el.offsetHeight/this.$video.offsetHeight * this.$video.videoHeight,
             window.innerWidth/this.$video.offsetWidth * this.$video.videoWidth,
             window.innerHeight/this.$video.offsetHeight * this.$video.videoHeight*/);
-        this._sourceRectSize = Math.round(2/3 * smallestDimension);
+        this._sourceRectSize = Math.round(3/4 * smallestDimension);
     }
 
     _scanFrame() {
         if (this.$video.paused || this.$video.ended) return false;
         this.$context.drawImage(this.$video, (this.$video.videoWidth - this._sourceRectSize) / 2,
             (this.$video.videoHeight - this._sourceRectSize) / 2, this._sourceRectSize, this._sourceRectSize,
-            0, 0, 320, 320);
+            0, 0, 512, 512);
         this._decode();
         requestAnimationFrame(() => this._scanFrame());
     }
@@ -44,12 +44,35 @@ class QrScanner extends XElement {
             this._cameraOff();
     }
 
-    _cameraOn() {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-            .then(stream => {
-                this.$video.srcObject = stream
-            })
-            .catch(console.error);
+    _cameraOn(settingsToTry) {
+        settingsToTry = settingsToTry || [
+            {
+                facingMode: "environment",
+                width: 768,
+                height: 1024
+            },
+            {
+                facingMode: "environment",
+                width: 1024,
+                height: 768
+            },
+            {
+                facingMode: "environment",
+            }
+
+        ];
+        navigator.mediaDevices.getUserMedia({
+            video: settingsToTry.shift(),
+            audio: false
+        })
+        .then(stream => this.$video.srcObject = stream)
+        .catch(() => {
+            if (settingsToTry.length > 0) {
+                this._cameraOn(settingsToTry)
+            } else {
+                throw Error('couldn\'t start camera');
+            }
+        });
     }
 
     _cameraOff() {
