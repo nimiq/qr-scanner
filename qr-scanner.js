@@ -3,14 +3,29 @@ class QrScanner extends XElement {
         this.$video = this.$('video');
         this.$canvas = this.$('canvas');
         this.$context = this.$canvas.getContext('2d');
-        this.$video.addEventListener('play', () => this._drawOnCanvas(), false);
+        this._sourceRectSize = 0;
+        window.addEventListener('resize', () => this._updateSourceRect());
+        this.$video.addEventListener('canplay', () => this._updateSourceRect());
+        this.$video.addEventListener('play', () => this._scanFrame(), false);
     }
 
-    _drawOnCanvas() {
+    _updateSourceRect() {
+        var smallestDimension = Math.min(this.$video.videoWidth, this.$video.videoHeight/*,
+            // visible part of the video
+            this.$el.offsetWidth/this.$video.offsetWidth * this.$video.videoWidth,
+            this.$el.offsetHeight/this.$video.offsetHeight * this.$video.videoHeight,
+            window.innerWidth/this.$video.offsetWidth * this.$video.videoWidth,
+            window.innerHeight/this.$video.offsetHeight * this.$video.videoHeight*/);
+        this._sourceRectSize = Math.round(2/3 * smallestDimension);
+    }
+
+    _scanFrame() {
         if (this.$video.paused || this.$video.ended) return false;
-        this.$context.drawImage(this.$video, -(this.$video.clientWidth - 320) / 2, -(this.$video.clientHeight - 320) / 2);
+        this.$context.drawImage(this.$video, (this.$video.videoWidth - this._sourceRectSize) / 2,
+            (this.$video.videoHeight - this._sourceRectSize) / 2, this._sourceRectSize, this._sourceRectSize,
+            0, 0, 320, 320);
         this._decode();
-        requestAnimationFrame(() => this._drawOnCanvas());
+        requestAnimationFrame(() => this._scanFrame());
     }
 
     _decode() {
