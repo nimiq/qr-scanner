@@ -31,45 +31,28 @@
     }
 
     video {
-        max-height: 100%;
-    }
-
-    x-qr-code-scanner {
-        position: relative;
-        overflow: hidden;
-        display: flex;
-        justify-content: center;
-    }
-
-    .overlay {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        margin-left: -550px;
-        margin-top: -550px;
-        width: 300px;
-        height: 300px;
-        border: black solid 400px;
-        opacity: 0.7;
-    }
-
-    .indicator {
         width: 100%;
-        /*height: 100%;*/
-        border-top: 3px solid #00f700;
-        opacity: 0.5;
-        box-sizing: border-box;
-        will-change:transform;
-        animation: moveDown 2s infinite alternate ease-in-out;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
     }
 
-    @keyframes moveDown {
-        from {
-            transform: translateY(0);
-        }
-        to {
-            transform: translateY(300px);
-        }
+    x-qr-scanner {
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+
+    #qr-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: black solid;
+        opacity: 0.7;
+        box-sizing: border-box;
     }
 
     @media (min-width: 1024px) {
@@ -129,10 +112,8 @@
 <body>
     <x-qr-scanner>
         <video muted autoplay playsinline></video>
-        <div class="overlay">
-            <div class="indicator"></div>
-        </div>
-        <canvas id="qr-canvas" width="512" height="512"></canvas>
+        <div id="qr-overlay"></div>
+        <canvas id="qr-canvas" width="400" height="400"></canvas>
     </x-qr-scanner>
     <a class="label">Test</a>
 </body>

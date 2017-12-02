@@ -3,27 +3,36 @@ class QrScanner extends XElement {
         this.$video = this.$('video');
         this.$canvas = this.$('canvas');
         this.$context = this.$canvas.getContext('2d');
-        this._sourceRectSize = 0;
+        this.$overlay = this.$('#qr-overlay');
+        this._sourceRectSize = 400;
         window.addEventListener('resize', () => this._updateSourceRect());
         this.$video.addEventListener('canplay', () => this._updateSourceRect());
         this.$video.addEventListener('play', () => this._scanFrame(), false);
     }
 
     _updateSourceRect() {
-        var smallestDimension = Math.min(this.$video.videoWidth, this.$video.videoHeight/*,
-            // visible part of the video
-            this.$el.offsetWidth/this.$video.offsetWidth * this.$video.videoWidth,
-            this.$el.offsetHeight/this.$video.offsetHeight * this.$video.videoHeight,
-            window.innerWidth/this.$video.offsetWidth * this.$video.videoWidth,
-            window.innerHeight/this.$video.offsetHeight * this.$video.videoHeight*/);
-        this._sourceRectSize = Math.round(3/4 * smallestDimension);
+        var smallestDimension = Math.min(this.$video.videoWidth, this.$video.videoHeight);
+        this._sourceRectSize = Math.round(2/3 * smallestDimension);
+
+        var scannerWidth = this.$el.offsetWidth;
+        var scannerHeight = this.$el.offsetHeight;
+        var widthRatio = this.$video.videoWidth / scannerWidth;
+        var heightRatio = this.$video.videoHeight / scannerHeight;
+        var scaleFactor = 1 / (Math.min(heightRatio, widthRatio) || 1);
+        var scaledOverlaySize = this._sourceRectSize * scaleFactor;
+        var borderWidth = Math.max(0, (scannerWidth - scaledOverlaySize) / 2) + 'px';
+        var borderHeight = Math.max(0, (scannerHeight - scaledOverlaySize) / 2) + 'px';
+        this.$overlay.style.borderTopWidth = borderHeight;
+        this.$overlay.style.borderBottomWidth = borderHeight;
+        this.$overlay.style.borderLeftWidth = borderWidth;
+        this.$overlay.style.borderRightWidth = borderWidth;
     }
 
     _scanFrame() {
         if (this.$video.paused || this.$video.ended) return false;
         this.$context.drawImage(this.$video, (this.$video.videoWidth - this._sourceRectSize) / 2,
             (this.$video.videoHeight - this._sourceRectSize) / 2, this._sourceRectSize, this._sourceRectSize,
-            0, 0, 512, 512);
+            0, 0, 400, 400);
         this._decode();
         requestAnimationFrame(() => this._scanFrame());
     }
@@ -48,13 +57,11 @@ class QrScanner extends XElement {
         settingsToTry = settingsToTry || [
             {
                 facingMode: "environment",
-                width: 768,
-                height: 1024
+                width: {min: 1024}
             },
             {
                 facingMode: "environment",
-                width: 1024,
-                height: 768
+                width: {min: 768}
             },
             {
                 facingMode: "environment",
