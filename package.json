@@ -1,0 +1,33 @@
+{
+  "name": "qr-scanner",
+  "version": "0.4.0",
+  "description": "A javascript QR scanner library",
+  "main": "qr-scanner.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel jsqrcode/binarizer.js jsqrcode/grid.js jsqrcode/version.js jsqrcode/detector.js jsqrcode/formatinf.js jsqrcode/errorlevel.js jsqrcode/bitmat.js jsqrcode/datablock.js jsqrcode/bmparser.js jsqrcode/datamask.js jsqrcode/rsdecoder.js jsqrcode/gf256poly.js jsqrcode/gf256.js jsqrcode/decoder.js jsqrcode/qrcode.js jsqrcode/findpat.js jsqrcode/alignpat.js jsqrcode/databr.js -o jsqrcode.min.js --presets=env,minify --source-maps"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nimiq/qr-scanner.git"
+  },
+  "keywords": [
+    "qr",
+    "scanner",
+    "reader",
+    "js",
+    "javascript",
+    "web"
+  ],
+  "author": "Nimiq",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nimiq/qr-scanner/issues"
+  },
+  "homepage": "https://github.com/nimiq/qr-scanner#readme",
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "babel-preset-minify": "^0.2.0"
+  }
+}
