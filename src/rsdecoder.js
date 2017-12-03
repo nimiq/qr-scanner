@@ -58,7 +58,7 @@ function ReedSolomonDecoder(field)
 				var position = received.length - 1 - this.field.log(errorLocations[i]);
 				if (position < 0)
 				{
-					throw "ReedSolomonException Bad error location";
+					throw new Error("QR Error: ReedSolomonException Bad error location");
 				}
 				received[position] = GF256.addOrSubtract(received[position], errorMagnitudes[i]);
 			}
@@ -95,7 +95,7 @@ function ReedSolomonDecoder(field)
 				if (rLast.Zero)
 				{
 					// Oops, Euclidean algorithm already terminated?
-					throw "r_{i-1} was zero";
+					throw new Error("QR Error: r_{i-1} was zero");
 				}
 				r = rLastLast;
 				var q = this.field.Zero;
@@ -117,7 +117,7 @@ function ReedSolomonDecoder(field)
 			var sigmaTildeAtZero = t.getCoefficient(0);
 			if (sigmaTildeAtZero == 0)
 			{
-				throw "ReedSolomonException sigmaTilde(0) was zero";
+				throw new Error("QR Error: ReedSolomonException sigmaTilde(0) was zero");
 			}
 			
 			var inverse = this.field.inverse(sigmaTildeAtZero);
@@ -146,7 +146,7 @@ function ReedSolomonDecoder(field)
 			}
 			if (e != numErrors)
 			{
-				throw "Error locator degree does not match number of roots";
+				throw new Error("QR Error: Error locator degree does not match number of roots");
 			}
 			return result;
 		}

@@ -273,7 +273,7 @@ function AlignmentPatternFinder( image,  startX,  startY,  width,  height,  modu
 				return  this.possibleCenters[0];
 			}
 			
-			throw "Couldn't find enough alignment patterns";
+			throw new Error("QR Error: Couldn't find enough alignment patterns");
 		}
 	
 }

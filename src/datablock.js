@@ -43,7 +43,7 @@ DataBlock.getDataBlocks=function(rawCodewords,  version,  ecLevel)
 	
 	if (rawCodewords.length != version.TotalCodewords)
 	{
-		throw "ArgumentException";
+		throw new Error("QR Error: ArgumentException");
 	}
 	
 	// Figure out the number and size of data blocks used by this version and

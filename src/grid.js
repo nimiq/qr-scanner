@@ -37,7 +37,7 @@ GridSampler.checkAndNudgePoints=function( image,  points)
 				var y = Math.floor( points[offset + 1]);
 				if (x < - 1 || x > width || y < - 1 || y > height)
 				{
-					throw "Error.checkAndNudgePoints ";
+					throw new Error("QR Error: Error.checkAndNudgePoints");
 				}
 				nudged = false;
 				if (x == - 1)
@@ -69,7 +69,7 @@ GridSampler.checkAndNudgePoints=function( image,  points)
 				var y = Math.floor( points[offset + 1]);
 				if (x < - 1 || x > width || y < - 1 || y > height)
 				{
-					throw "Error.checkAndNudgePoints ";
+					throw new Error("QR Error: Error.checkAndNudgePoints");
 				}
 				nudged = false;
 				if (x == - 1)
@@ -138,7 +138,7 @@ GridSampler.sampleGrid3=function( image,  dimension,  transform)
 					// This results in an ugly runtime exception despite our clever checks above -- can't have
 					// that. We could check each point's coordinates but that feels duplicative. We settle for
 					// catching and wrapping ArrayIndexOutOfBoundsException.
-					throw "Error.checkAndNudgePoints";
+					throw new Error("QR Error: Error.checkAndNudgePoints");
 				}
 			}
 			return bits;

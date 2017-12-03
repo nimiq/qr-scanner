@@ -26,7 +26,7 @@ class Binarizer {
         let blockThresholds;
         if (buffer) {
             if (!(buffer instanceof Uint8ClampedArray) || buffer.byteLength !== blockCountX * blockCountY) {
-                throw Error('Illegal Buffer.');
+                throw new Error('QR Error: Illegal Buffer.');
             }
             blockThresholds = buffer;
         } else {

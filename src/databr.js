@@ -281,11 +281,11 @@ function QRCodeDataBlockReader(blocks,  version,  numErrorCorrectionCode)
 							if (output.length > 0)
 								break;
 							else
-								throw "Empty data block";
+								throw new Error("QR Error: Empty data block");
 						}
 						if (mode != MODE_NUMBER && mode != MODE_ROMAN_AND_NUMBER && mode != MODE_8BIT_BYTE && mode != MODE_KANJI && mode != MODE_ECI)
 						{
-							throw "Invalid mode: " + mode + " in (block:" + this.blockPointer + " bit:" + this.bitPointer + ")";
+							throw new Error("QR Error: Invalid mode: " + mode + " in (block:" + this.blockPointer + " bit:" + this.bitPointer + ")");
 						}
 
 						if(mode == MODE_ECI)
@@ -298,7 +298,7 @@ function QRCodeDataBlockReader(blocks,  version,  numErrorCorrectionCode)
 
 							var dataLength = this.getDataLength(mode);
 							if (dataLength < 1)
-								throw "Invalid data length: " + dataLength;
+								throw new Error("QR Error: Invalid data length: " + dataLength);
 							switch (mode)
 							{
 								

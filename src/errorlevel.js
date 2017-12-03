@@ -46,7 +46,7 @@ ErrorCorrectionLevel.forBits=function( bits)
 {
 	if (bits < 0 || bits >= FOR_BITS.length)
 	{
-		throw "ArgumentException";
+		throw new Error("QR Error: ArgumentException");
 	}
 	return FOR_BITS[bits];
 }

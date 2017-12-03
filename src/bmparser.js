@@ -28,7 +28,7 @@ function BitMatrixParser(bitMatrix)
 	var dimension = bitMatrix.Dimension;
 	if (dimension < 21 || (dimension & 0x03) != 1)
 	{
-		throw "Error BitMatrixParser";
+		throw new Error("QR Error: Error BitMatrixParser");
 	}
 	this.bitMatrix = bitMatrix;
 	this.parsedVersion = null;
@@ -86,7 +86,7 @@ function BitMatrixParser(bitMatrix)
 			{
 				return this.parsedFormatInfo;
 			}
-			throw "Error readFormatInformation";	
+			throw new Error("QR Error: Error readFormatInformation");
 	}
 	this.readVersion=function()
 		{
@@ -136,7 +136,7 @@ function BitMatrixParser(bitMatrix)
 			{
 				return this.parsedVersion;
 			}
-			throw "Error readVersion";
+			throw new Error("QR Error: Error readVersion");
 		}
 	this.readCodewords=function()
 		{
@@ -196,7 +196,7 @@ function BitMatrixParser(bitMatrix)
 			}
 			if (resultOffset != version.TotalCodewords)
 			{
-				throw "Error readCodewords";
+				throw new Error("QR Error: Error readCodewords");
 			}
 			return result;
 		}

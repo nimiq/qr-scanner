@@ -59,7 +59,7 @@ function GF256( primitive)
 		{
 			if (degree < 0)
 			{
-				throw "System.ArgumentException";
+				throw new Error("QR Error: System.ArgumentException");
 			}
 			if (coefficient == 0)
 			{
@@ -78,7 +78,7 @@ function GF256( primitive)
 		{
 			if (a == 0)
 			{
-				throw "System.ArgumentException";
+				throw new Error("QR Error: System.ArgumentException");
 			}
 			return this.logTable[a];
 		}
@@ -86,7 +86,7 @@ function GF256( primitive)
 		{
 			if (a == 0)
 			{
-				throw "System.ArithmeticException";
+				throw new Error("QR Error: System.ArithmeticException");
 			}
 			return this.expTable[255 - this.logTable[a]];
 		}

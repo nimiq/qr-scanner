@@ -42,7 +42,12 @@ class QrScanner extends XElement {
             var decoded = qrscanner.decode();
             this.fire('x-decoded', decoded);
         } catch (e) {
-            // no qr-code in this frame
+            if (e.message.startsWith('QR Error')) {
+                // no valid QR code found.
+                console.log(e);
+            } else {
+                throw e; // some different error
+            }
         }
     }
 
@@ -77,7 +82,7 @@ class QrScanner extends XElement {
             if (settingsToTry.length > 0) {
                 this._cameraOn(settingsToTry)
             } else {
-                throw Error('couldn\'t start camera');
+                throw new Error('Couldn\'t start camera');
             }
         });
     }

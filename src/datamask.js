@@ -29,7 +29,7 @@ DataMask.forReference = function(reference)
 {
 	if (reference < 0 || reference > 7)
 	{
-		throw "System.ArgumentException";
+		throw new Error("QR Error: System.ArgumentException");
 	}
 	return DataMask.DATA_MASKS[reference];
 }

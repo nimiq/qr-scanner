@@ -27,7 +27,7 @@ function GF256Poly(field,  coefficients)
 {
 	if (coefficients == null || coefficients.length == 0)
 	{
-		throw "System.ArgumentException";
+		throw new Error("QR Error: System.ArgumentException");
 	}
 	this.field = field;
 	var coefficientsLength = coefficients.length;
@@ -104,7 +104,7 @@ function GF256Poly(field,  coefficients)
 		{
 			if (this.field != other.field)
 			{
-				throw "GF256Polys do not have same GF256 field";
+				throw new Error("QR Error: GF256Polys do not have same GF256 field");
 			}
 			if (this.Zero)
 			{
@@ -140,7 +140,7 @@ function GF256Poly(field,  coefficients)
 		{
 			if (this.field!=other.field)
 			{
-				throw "GF256Polys do not have same GF256 field";
+				throw new Error("QR Error: GF256Polys do not have same GF256 field");
 			}
 			if (this.Zero || other.Zero)
 			{
@@ -183,7 +183,7 @@ function GF256Poly(field,  coefficients)
 		{
 			if (degree < 0)
 			{
-				throw "System.ArgumentException";
+				throw new Error("QR Error: System.ArgumentException");
 			}
 			if (coefficient == 0)
 			{
@@ -202,11 +202,11 @@ function GF256Poly(field,  coefficients)
 		{
 			if (this.field!=other.field)
 			{
-				throw "GF256Polys do not have same GF256 field";
+				throw new Error("QR Error: GF256Polys do not have same GF256 field");
 			}
 			if (other.Zero)
 			{
-				throw "Divide by 0";
+				throw new Error("QR Error: Divide by 0");
 			}
 			
 			var quotient = this.field.Zero;

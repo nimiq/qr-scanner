@@ -164,7 +164,7 @@ Version.getVersionForNumber=function( versionNumber)
 {
 	if (versionNumber < 1 || versionNumber > 40)
 	{
-		throw "ArgumentException";
+		throw new Error("QR Error: ArgumentException");
 	}
 	return Version.VERSIONS[versionNumber - 1];
 }
@@ -173,7 +173,7 @@ Version.getProvisionalVersionForDimension=function(dimension)
 {
 	if (dimension % 4 != 1)
 	{
-		throw "Error getProvisionalVersionForDimension";
+		throw new Error("QR Error: Error getProvisionalVersionForDimension");
 	}
 	try
 	{
@@ -181,7 +181,7 @@ Version.getProvisionalVersionForDimension=function(dimension)
 	}
 	catch ( iae)
 	{
-		throw "Error getVersionForNumber";
+		throw new Error("QR Error: Error getVersionForNumber");
 	}
 }
 
