@@ -11,6 +11,7 @@ gulp.task('build', function() {
             .pipe(sourcemaps.init()),
 
         gulp.src([
+                './src/worker.js',
                 './src/binarizer.js',
                 './src/grid.js',
                 './src/version.js',
@@ -39,7 +40,7 @@ gulp.task('build', function() {
         gulp.src('./src/suffix.js')
             .pipe(sourcemaps.init())
     )
-    .pipe(concat('qr-scanner-lib.min.js'))
+    .pipe(concat('qr-scanner-worker.min.js'))
     .pipe(uglify())
     .pipe(sourcemaps.write('.'))
     .pipe(gulp.dest('.'));

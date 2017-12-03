@@ -136,4 +136,4 @@ class Binarizer {
 }
 Binarizer.TARGET_BLOCK_COUNT_ALONG_SHORTER_SIDE = 40;
 Binarizer.MIN_BLOCK_SIZE = 16;
-Binarizer.MIN_DYNAMIC_RANGE = 24; // if the dynamic range in a block is below this value it's assumed to be single color
+Binarizer.MIN_DYNAMIC_RANGE = 12; // if the dynamic range in a block is below this value it's assumed to be single color

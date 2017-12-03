@@ -1,10 +1,15 @@
 class QrScanner extends XElement {
     onCreate() {
+        this._qrWorker = new Worker('qr-scanner-worker.min.js');
+        this._qrWorker.onmessage = event => this._handleWorkerMessage(event);
         this.$video = this.$('video');
         this.$canvas = this.$('canvas');
+        this.$debugCanvas = null;
+        this.$debugContext = null;
         this.$context = this.$canvas.getContext('2d');
         this.$overlay = this.$('#qr-overlay');
-        this._sourceRectSize = 400;
+        this._canvasSize = this.$canvas.width;
+        this._sourceRectSize = this._canvasSize;
         window.addEventListener('resize', () => this._updateSourceRect());
         this.$video.addEventListener('canplay', () => this._updateSourceRect());
         this.$video.addEventListener('play', () => this._scanFrame(), false);
@@ -32,22 +37,24 @@ class QrScanner extends XElement {
         if (this.$video.paused || this.$video.ended) return false;
         this.$context.drawImage(this.$video, (this.$video.videoWidth - this._sourceRectSize) / 2,
             (this.$video.videoHeight - this._sourceRectSize) / 2, this._sourceRectSize, this._sourceRectSize,
-            0, 0, 400, 400);
-        this._decode();
-        requestAnimationFrame(() => this._scanFrame());
+            0, 0, this._canvasSize, this._canvasSize);
+        var imageData = this.$context.getImageData(0, 0, this._canvasSize, this._canvasSize);
+        this._qrWorker.postMessage({
+            type: 'decode',
+            data: imageData
+        }, [imageData.data.buffer]);
     }
 
-    _decode() {
-        try {
-            var decoded = qrscanner.decode();
-            this.fire('x-decoded', decoded);
-        } catch (e) {
-            if (e.message.startsWith('QR Error')) {
-                // no valid QR code found.
-                console.log(e);
-            } else {
-                throw e; // some different error
+    _handleWorkerMessage(event) {
+        var type = event.data.type;
+        var data = event.data.data;
+        if (type === 'qrResult') {
+            if (data !== null) {
+                this.fire('x-decoded', data);
             }
+            requestAnimationFrame(() => this._scanFrame());
+        } else if (type === 'debugImage') {
+            this.$debugContext.putImageData(data, 0, 0);
         }
     }
 
@@ -90,6 +97,22 @@ class QrScanner extends XElement {
     _cameraOff() {
         this.$video.pause();
         setTimeout(() => this.$video.srcObject.getTracks()[0].stop(), 3000);
+    }
+
+    set debug(isDebug) {
+        this._qrWorker.postMessage({
+            type: 'setDebug',
+            data: isDebug
+        });
+        if (!this.$debugCanvas) {
+            this.$debugCanvas = document.createElement('canvas');
+            this.$debugCanvas.setAttribute('id', 'debug-canvas');
+            this.$debugCanvas.width = this._canvasSize;
+            this.$debugCanvas.height = this._canvasSize;
+            this.$debugContext = this.$debugCanvas.getContext('2d');
+            document.body.appendChild(this.$debugCanvas);
+        }
+        this.$debugCanvas.style.display = isDebug? 'block' : 'none';
     }
 }
 

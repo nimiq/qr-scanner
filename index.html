@@ -67,6 +67,13 @@
         display: none;
     }
 
+    #debug-canvas {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
     .label {
         position: absolute;
         max-width: 320px;
@@ -117,27 +124,6 @@
     </x-qr-scanner>
     <a class="label">Test</a>
 </body>
-<script src="qr-scanner-lib.min.js"></script>
-<!--
-<script type="text/javascript" src="src/binarizer.js"></script>
-<script type="text/javascript" src="src/grid.js"></script>
-<script type="text/javascript" src="src/version.js"></script>
-<script type="text/javascript" src="src/detector.js"></script>
-<script type="text/javascript" src="src/formatinf.js"></script>
-<script type="text/javascript" src="src/errorlevel.js"></script>
-<script type="text/javascript" src="src/bitmat.js"></script>
-<script type="text/javascript" src="src/datablock.js"></script>
-<script type="text/javascript" src="src/bmparser.js"></script>
-<script type="text/javascript" src="src/datamask.js"></script>
-<script type="text/javascript" src="src/rsdecoder.js"></script>
-<script type="text/javascript" src="src/gf256poly.js"></script>
-<script type="text/javascript" src="src/gf256.js"></script>
-<script type="text/javascript" src="src/decoder.js"></script>
-<script type="text/javascript" src="src/qrcode.js"></script>
-<script type="text/javascript" src="src/findpat.js"></script>
-<script type="text/javascript" src="src/alignpat.js"></script>
-<script type="text/javascript" src="src/databr.js"></script>
--->
 <script src="/x-element/src/x-element.js"></script>
 <script src="qr-scanner.js"></script>
 <script>
@@ -148,12 +134,18 @@ scanner.active = true;
 
 scanner.$el.addEventListener('x-decoded', (e) => {
     const decoded = e.detail;
+    console.log(decoded);
     setLabel(decoded);
-    resetClass(label, 'label-active', decoded);
+    resetClass(decoded);
 });
 
 function setLabel(decoded) {
-    if (qrscanner.isUrl(decoded)) {
+    var isUrl = false;
+    try {
+        new Url(decoded);
+        isUrl = true;
+    } catch(e) {}
+    if (isUrl) {
         label.href = decoded;
     } else {
         label.removeAttribute('href');
@@ -164,13 +156,14 @@ function setLabel(decoded) {
 var lastDecoded;
 var lastDecodedTimer;
 
-function resetClass(el, className, decoded) {
-    if (decoded == lastDecoded) return;
+function resetClass(decoded) {
+    if (decoded === lastDecoded) return;
     clearTimeout(lastDecodedTimer);
     lastDecodedTimer = setTimeout(() => lastDecoded = false, 3000);
     lastDecoded = decoded;
-    label.classList.remove(className);
-    requestAnimationFrame(_ => label.classList.add(className))
+    label.classList.remove('label-active');
+    label.offsetWidth; // force render
+    label.classList.add('label-active');
 }
 </script>
 
