@@ -1,6 +1,6 @@
 class QrScanner extends XElement {
     onCreate() {
-        this._qrWorker = new Worker('qr-scanner-worker.min.js');
+        this._qrWorker = new Worker('/qr-scanner/qr-scanner-worker.min.js');
         this._qrWorker.onmessage = event => this._handleWorkerMessage(event);
         this.$video = this.$('video');
         this.$canvas = this.$('canvas');
@@ -18,7 +18,7 @@ class QrScanner extends XElement {
 
     _updateSourceRect() {
         var smallestDimension = Math.min(this.$video.videoWidth, this.$video.videoHeight);
-        this._sourceRectSize = Math.round(2/3 * smallestDimension);
+        this._sourceRectSize = Math.round(2 / 3 * smallestDimension);
 
         var scannerWidth = this.$el.offsetWidth;
         var scannerHeight = this.$el.offsetHeight;
@@ -36,9 +36,9 @@ class QrScanner extends XElement {
 
     _scanFrame() {
         if (this.$video.paused || this.$video.ended) return false;
-        this.$context.drawImage(this.$video, (this.$video.videoWidth - this._sourceRectSize) / 2,
-            (this.$video.videoHeight - this._sourceRectSize) / 2, this._sourceRectSize, this._sourceRectSize,
-            0, 0, this._canvasSize, this._canvasSize);
+        const x0 = (this.$video.videoWidth - this._sourceRectSize) / 2;
+        const y0 = (this.$video.videoHeight - this._sourceRectSize) / 2;
+        this.$context.drawImage(this.$video, x0, y0, this._sourceRectSize, this._sourceRectSize, 0, 0, this._canvasSize, this._canvasSize);
         var imageData = this.$context.getImageData(0, 0, this._canvasSize, this._canvasSize);
         this._qrWorker.postMessage({
             type: 'decode',
@@ -67,14 +67,13 @@ class QrScanner extends XElement {
     }
 
     _cameraOn(settingsToTry) {
-        settingsToTry = settingsToTry || [
-            {
+        settingsToTry = settingsToTry || [{
                 facingMode: "environment",
-                width: {min: 1024}
+                width: { min: 1024 }
             },
             {
                 facingMode: "environment",
-                width: {min: 768}
+                width: { min: 768 }
             },
             {
                 facingMode: "environment",
@@ -82,17 +81,17 @@ class QrScanner extends XElement {
 
         ];
         navigator.mediaDevices.getUserMedia({
-            video: settingsToTry.shift(),
-            audio: false
-        })
-        .then(stream => this.$video.srcObject = stream)
-        .catch(() => {
-            if (settingsToTry.length > 0) {
-                this._cameraOn(settingsToTry)
-            } else {
-                throw new Error('Couldn\'t start camera');
-            }
-        });
+                video: settingsToTry.shift(),
+                audio: false
+            })
+            .then(stream => this.$video.srcObject = stream)
+            .catch(() => {
+                if (settingsToTry.length > 0) {
+                    this._cameraOn(settingsToTry)
+                } else {
+                    throw new Error('Couldn\'t start camera');
+                }
+            });
     }
 
     _cameraOff() {
@@ -113,7 +112,7 @@ class QrScanner extends XElement {
             this.$debugContext = this.$debugCanvas.getContext('2d');
             document.body.appendChild(this.$debugCanvas);
         }
-        this.$debugCanvas.style.display = isDebug? 'block' : 'none';
+        this.$debugCanvas.style.display = isDebug ? 'block' : 'none';
     }
 }
 
