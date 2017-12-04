@@ -23,9 +23,8 @@
 */
 
 
-var MIN_SKIP = 3;
-var MAX_MODULES = 57;
-var INTEGER_MATH_SHIFT = 8;
+var MIN_SKIP = 3; // 1 pixel/module times 3 modules/center
+var MAX_MODULES = 57; // support up to version 10 for mobile clients
 var CENTER_QUORUM = 2;
 
 qrcode.orderBestPatterns=function(patterns)
@@ -148,6 +147,13 @@ function FinderPatternInfo(patternCenters)
 	}); 
 }
 
+/**
+ * Finds a finder pattern. A finder pattern is one of the patterns in the corners
+ * of the QR codes. The patterns consist of black and white squares of specific proportions.
+ * If you consider a line through the pattern, the color changes proportionally between white and black:
+ *   1   -   1   -   3   -   1   -   1
+ * black - white - black - white - black
+ */
 function FinderPatternFinder()
 {
 	this.image=null;
@@ -182,10 +188,14 @@ function FinderPatternFinder()
 			{
 				return false;
 			}
-			var moduleSize = Math.floor((totalModuleSize << INTEGER_MATH_SHIFT) / 7);
-			var maxVariance = Math.floor(moduleSize / 2);
-			// Allow less than 50% variance from 1-1-3-1-1 proportions
-			return Math.abs(moduleSize - (stateCount[0] << INTEGER_MATH_SHIFT)) < maxVariance && Math.abs(moduleSize - (stateCount[1] << INTEGER_MATH_SHIFT)) < maxVariance && Math.abs(3 * moduleSize - (stateCount[2] << INTEGER_MATH_SHIFT)) < 3 * maxVariance && Math.abs(moduleSize - (stateCount[3] << INTEGER_MATH_SHIFT)) < maxVariance && Math.abs(moduleSize - (stateCount[4] << INTEGER_MATH_SHIFT)) < maxVariance;
+			var moduleSize = Math.floor(totalModuleSize / 7);
+			var maxVariance = Math.floor(moduleSize * 0.7);
+			// Allow less than 70% variance from 1-1-3-1-1 proportions
+			return Math.abs(moduleSize - stateCount[0]) < maxVariance
+				&& Math.abs(moduleSize - stateCount[1]) < maxVariance
+				&& Math.abs(3 * moduleSize - stateCount[2]) < 3 * maxVariance
+				&& Math.abs(moduleSize - stateCount[3]) < maxVariance
+				&& Math.abs(moduleSize - stateCount[4]) < maxVariance;
 		}
 	this.centerFromEnd=function( stateCount,  end)
 		{
@@ -518,8 +528,12 @@ function FinderPatternFinder()
 		this.image=image;
 		var maxI = qrcode.height;
 		var maxJ = qrcode.width;
-		var iSkip = Math.floor((3 * maxI) / (4 * MAX_MODULES));
-		if (iSkip < MIN_SKIP || tryHarder)
+        // Let's assume that the maximum version QR Code we support takes up 1/4 the height of the
+        // image, and then account for the center being 3 modules in size. This gives the smallest
+        // number of pixels the center could be, so skip this often. When trying harder, look for all
+        // QR versions regardless of how dense they are.
+        var iSkip = Math.floor((3 * maxI) / (4 * MAX_MODULES));
+        if (iSkip < MIN_SKIP || tryHarder)
 		{
 				iSkip = MIN_SKIP;
 		}

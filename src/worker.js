@@ -11,6 +11,7 @@ self.onmessage = event => {
             if (!e.message.startsWith('QR Error')) {
                 throw e; // some unexpected error
             }
+            // console.log(e);
         } finally {
             self.postMessage({
                 type: 'qrResult',
