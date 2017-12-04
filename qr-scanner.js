@@ -1,6 +1,6 @@
 class QrScanner extends XElement {
     onCreate() {
-        this._qrWorker = new Worker('qr-scanner-worker.min.js');
+        this._qrWorker = new Worker('/qr-scanner/qr-scanner-worker.min.js');
         this._qrWorker.onmessage = event => this._handleWorkerMessage(event);
         this.$video = this.$('video');
         this.$canvas = this.$('canvas');
