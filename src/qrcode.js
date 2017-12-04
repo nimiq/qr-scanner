@@ -155,9 +155,14 @@ qrcode.grayscale = function(inputRgba, width, height, out_grayscale)
         {
             var index = y*width + x;
             var rgbaIndex = 4 * index;
-            // quick luma integer approximation (https://en.wikipedia.org/wiki/YUV#Full_swing_for_BT.601)
-            out_grayscale[index] = (77 * inputRgba[rgbaIndex] + 150 * inputRgba[rgbaIndex+1] +
-                29 * inputRgba[rgbaIndex+2] + 128) >> 8;
+            // based on quick luma integer approximation (https://en.wikipedia.org/wiki/YUV#Full_swing_for_BT.601)
+            // However, instead of 77, 150, 29 we use changed weights that give red and green a higher weight to
+            // give a higher contrast to white/blue as it is used in our qr codes.
+            // Specifically, our qr codes have a white background and rgb(83, 109, 254) foreground.
+            // You might want to adapt the values for your specific application.
+            // Note that the weights sum up to 256
+            out_grayscale[index] = (145 * inputRgba[rgbaIndex] + 91 * inputRgba[rgbaIndex+1] +
+                20 * inputRgba[rgbaIndex+2] + 128) >> 8;
         }
     }
 }
