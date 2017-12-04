@@ -6,7 +6,8 @@ class QrScanner extends XElement {
         this.$canvas = this.$('canvas');
         this.$debugCanvas = null;
         this.$debugContext = null;
-        this.$context = this.$canvas.getContext('2d');
+        this.$context = this.$canvas.getContext('2d', { alpha: false });
+        this.$context.imageSmoothingEnabled = false; // gives less blurry images
         this.$overlay = this.$('#qr-overlay');
         this._canvasSize = this.$canvas.width;
         this._sourceRectSize = this._canvasSize;
