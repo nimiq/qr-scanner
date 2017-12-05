@@ -116,8 +116,8 @@ qrcode.process = function(){
         var qRCodeMatrix = detector.detect(); // throws if no qr code was found
 
         if (qrcode.debug) {
-            for (var y = 0; y < qRCodeMatrix.bits.Height; y++) {
-                for (var x = 0; x < qRCodeMatrix.bits.Width; x++) {
+            for (var y = 0; y < qRCodeMatrix.bits.getHeight(); y++) {
+                for (var x = 0; x < qRCodeMatrix.bits.getWidth(); x++) {
                     var point = (x * 4 * 2) + (y * 2 * qrcode.width * 4);
                     var isSet = qRCodeMatrix.bits.get_Renamed(x, y)
                     debugImage.data[point] = isSet ? 0 : 255;
@@ -135,7 +135,7 @@ qrcode.process = function(){
     
     
     var reader = Decoder.decode(qRCodeMatrix.bits);
-    var data = reader.DataByte;
+    var data = reader.getDataByte();
     var str="";
     for(var i=0;i<data.length;i++)
     {

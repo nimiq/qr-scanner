@@ -83,8 +83,8 @@ function PerspectiveTransform( a11,  a21,  a31,  a12,  a22,  a32,  a13,  a23,  a
 PerspectiveTransform.quadrilateralToQuadrilateral=function( x0,  y0,  x1,  y1,  x2,  y2,  x3,  y3,  x0p,  y0p,  x1p,  y1p,  x2p,  y2p,  x3p,  y3p)
 {
 	
-	var qToS = this.quadrilateralToSquare(x0, y0, x1, y1, x2, y2, x3, y3);
-	var sToQ = this.squareToQuadrilateral(x0p, y0p, x1p, y1p, x2p, y2p, x3p, y3p);
+	var qToS = PerspectiveTransform.quadrilateralToSquare(x0, y0, x1, y1, x2, y2, x3, y3);
+	var sToQ = PerspectiveTransform.squareToQuadrilateral(x0p, y0p, x1p, y1p, x2p, y2p, x3p, y3p);
 	return sToQ.times(qToS);
 }
 
@@ -112,7 +112,7 @@ PerspectiveTransform.squareToQuadrilateral=function( x0,  y0,  x1,  y1,  x2,  y2
 PerspectiveTransform.quadrilateralToSquare=function( x0,  y0,  x1,  y1,  x2,  y2,  x3,  y3)
 {
 	// Here, the adjoint serves as the inverse:
-	return this.squareToQuadrilateral(x0, y0, x1, y1, x2, y2, x3, y3).buildAdjoint();
+	return PerspectiveTransform.squareToQuadrilateral(x0, y0, x1, y1, x2, y2, x3, y3).buildAdjoint();
 }
 
 function DetectorResult(bits,  points)
@@ -234,8 +234,8 @@ function Detector(image)
 	
 	this.calculateModuleSizeOneWay=function( pattern,  otherPattern)
 		{
-			var moduleSizeEst1 = this.sizeOfBlackWhiteBlackRunBothWays(Math.floor( pattern.X), Math.floor( pattern.Y), Math.floor( otherPattern.X), Math.floor(otherPattern.Y));
-			var moduleSizeEst2 = this.sizeOfBlackWhiteBlackRunBothWays(Math.floor(otherPattern.X), Math.floor(otherPattern.Y), Math.floor( pattern.X), Math.floor(pattern.Y));
+			var moduleSizeEst1 = this.sizeOfBlackWhiteBlackRunBothWays(Math.floor( pattern.getX()), Math.floor( pattern.getY()), Math.floor( otherPattern.getX()), Math.floor(otherPattern.getY()));
+			var moduleSizeEst2 = this.sizeOfBlackWhiteBlackRunBothWays(Math.floor(otherPattern.getX()), Math.floor(otherPattern.getY()), Math.floor( pattern.getX()), Math.floor(pattern.getY()));
 			if (isNaN(moduleSizeEst1))
 			{
 				return moduleSizeEst2 / 7.0;
@@ -258,8 +258,8 @@ function Detector(image)
 
 	this.distance=function( pattern1,  pattern2)
 	{
-		var xDiff = pattern1.X - pattern2.X;
-		var yDiff = pattern1.Y - pattern2.Y;
+		var xDiff = pattern1.getX() - pattern2.getX();
+		var yDiff = pattern1.getY() - pattern2.getY();
 		return  Math.sqrt( (xDiff * xDiff + yDiff * yDiff));
 	}
 	this.computeDimension=function( topLeft,  topRight,  bottomLeft,  moduleSize)
@@ -315,19 +315,19 @@ function Detector(image)
 			var sourceBottomRightY;
 			if (alignmentPattern != null)
 			{
-				bottomRightX = alignmentPattern.X;
-				bottomRightY = alignmentPattern.Y;
+				bottomRightX = alignmentPattern.getX();
+				bottomRightY = alignmentPattern.getY();
 				sourceBottomRightX = sourceBottomRightY = dimMinusThree - 3.0;
 			}
 			else
 			{
 				// Don't have an alignment pattern, just make up the bottom-right point
-				bottomRightX = (topRight.X - topLeft.X) + bottomLeft.X;
-				bottomRightY = (topRight.Y - topLeft.Y) + bottomLeft.Y;
+				bottomRightX = (topRight.getX() - topLeft.getX()) + bottomLeft.getX();
+				bottomRightY = (topRight.getY() - topLeft.getY()) + bottomLeft.getY();
 				sourceBottomRightX = sourceBottomRightY = dimMinusThree;
 			}
 			
-			var transform = PerspectiveTransform.quadrilateralToQuadrilateral(3.5, 3.5, dimMinusThree, 3.5, sourceBottomRightX, sourceBottomRightY, 3.5, dimMinusThree, topLeft.X, topLeft.Y, topRight.X, topRight.Y, bottomRightX, bottomRightY, bottomLeft.X, bottomLeft.Y);
+			var transform = PerspectiveTransform.quadrilateralToQuadrilateral(3.5, 3.5, dimMinusThree, 3.5, sourceBottomRightX, sourceBottomRightY, 3.5, dimMinusThree, topLeft.getX(), topLeft.getY(), topRight.getX(), topRight.getY(), bottomRightX, bottomRightY, bottomLeft.getX(), bottomLeft.getY());
 			
 			return transform;
 		}		
@@ -342,9 +342,9 @@ function Detector(image)
 	this.processFinderPatternInfo = function( info)
 		{
 			
-			var topLeft = info.TopLeft;
-			var topRight = info.TopRight;
-			var bottomLeft = info.BottomLeft;
+			var topLeft = info.getTopLeft();
+			var topRight = info.getTopRight();
+			var bottomLeft = info.getBottomLeft();
 			
 			var moduleSize = this.calculateModuleSize(topLeft, topRight, bottomLeft);
 			if (moduleSize < 1.0)
@@ -353,22 +353,22 @@ function Detector(image)
 			}
 			var dimension = this.computeDimension(topLeft, topRight, bottomLeft, moduleSize);
 			var provisionalVersion = Version.getProvisionalVersionForDimension(dimension);
-			var modulesBetweenFPCenters = provisionalVersion.DimensionForVersion - 7;
+			var modulesBetweenFPCenters = provisionalVersion.getDimensionForVersion() - 7;
 			
 			var alignmentPattern = null;
 			// Anything above version 1 has an alignment pattern
-			if (provisionalVersion.AlignmentPatternCenters.length > 0)
+			if (provisionalVersion.getAlignmentPatternCenters().length > 0)
 			{
 				
 				// Guess where a "bottom right" finder pattern would have been
-				var bottomRightX = topRight.X - topLeft.X + bottomLeft.X;
-				var bottomRightY = topRight.Y - topLeft.Y + bottomLeft.Y;
+				var bottomRightX = topRight.getX() - topLeft.getX() + bottomLeft.getX();
+				var bottomRightY = topRight.getY() - topLeft.getY() + bottomLeft.getY();
 				
 				// Estimate that alignment pattern is closer by 3 modules
 				// from "bottom right" to known top left location
 				var correctionToTopLeft = 1.0 - 3.0 /  modulesBetweenFPCenters;
-				var estAlignmentX = Math.floor (topLeft.X + correctionToTopLeft * (bottomRightX - topLeft.X));
-				var estAlignmentY = Math.floor (topLeft.Y + correctionToTopLeft * (bottomRightY - topLeft.Y));
+				var estAlignmentX = Math.floor (topLeft.getX() + correctionToTopLeft * (bottomRightX - topLeft.getX()));
+				var estAlignmentY = Math.floor (topLeft.getY() + correctionToTopLeft * (bottomRightY - topLeft.getY()));
 				
 				// Kind of arbitrary -- expand search radius before giving up
 				for (var i = 4; i <= 16; i <<= 1)

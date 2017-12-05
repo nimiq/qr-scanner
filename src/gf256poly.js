@@ -41,7 +41,7 @@ function GF256Poly(field,  coefficients)
 		}
 		if (firstNonZero == coefficientsLength)
 		{
-			this.coefficients = field.Zero.coefficients;
+			this.coefficients = field.getZero().coefficients;
 		}
 		else
 		{
@@ -56,18 +56,18 @@ function GF256Poly(field,  coefficients)
 		this.coefficients = coefficients;
 	}
 	
-	this.__defineGetter__("Zero", function()
+	this.getZero = function()
 	{
 		return this.coefficients[0] == 0;
-	});
-	this.__defineGetter__("Degree", function()
+	};
+	this.getDegree = function()
 	{
 		return this.coefficients.length - 1;
-	});
-	this.__defineGetter__("Coefficients", function()
+	};
+	this.getCoefficients = function()
 	{
 		return this.coefficients;
-	});
+	};
 	
 	this.getCoefficient=function( degree)
 	{
@@ -106,11 +106,11 @@ function GF256Poly(field,  coefficients)
 			{
 				throw new Error("QR Error: GF256Polys do not have same GF256 field");
 			}
-			if (this.Zero)
+			if (this.getZero())
 			{
 				return other;
 			}
-			if (other.Zero)
+			if (other.getZero())
 			{
 				return this;
 			}
@@ -142,9 +142,9 @@ function GF256Poly(field,  coefficients)
 			{
 				throw new Error("QR Error: GF256Polys do not have same GF256 field");
 			}
-			if (this.Zero || other.Zero)
+			if (this.getZero() || other.getZero())
 			{
-				return this.field.Zero;
+				return this.field.getZero();
 			}
 			var aCoefficients = this.coefficients;
 			var aLength = aCoefficients.length;
@@ -165,7 +165,7 @@ function GF256Poly(field,  coefficients)
 		{
 			if (scalar == 0)
 			{
-				return this.field.Zero;
+				return this.field.getZero();
 			}
 			if (scalar == 1)
 			{
@@ -187,7 +187,7 @@ function GF256Poly(field,  coefficients)
 			}
 			if (coefficient == 0)
 			{
-				return this.field.Zero;
+				return this.field.getZero();
 			}
 			var size = this.coefficients.length;
 			var product = new Array(size + degree);
@@ -204,21 +204,21 @@ function GF256Poly(field,  coefficients)
 			{
 				throw new Error("QR Error: GF256Polys do not have same GF256 field");
 			}
-			if (other.Zero)
+			if (other.getZero())
 			{
 				throw new Error("QR Error: Divide by 0");
 			}
 			
-			var quotient = this.field.Zero;
+			var quotient = this.field.getZero();
 			var remainder = this;
 			
-			var denominatorLeadingTerm = other.getCoefficient(other.Degree);
+			var denominatorLeadingTerm = other.getCoefficient(other.getDegree());
 			var inverseDenominatorLeadingTerm = this.field.inverse(denominatorLeadingTerm);
 			
-			while (remainder.Degree >= other.Degree && !remainder.Zero)
+			while (remainder.getDegree() >= other.getDegree() && !remainder.getZero())
 			{
-				var degreeDifference = remainder.Degree - other.Degree;
-				var scale = this.field.multiply(remainder.getCoefficient(remainder.Degree), inverseDenominatorLeadingTerm);
+				var degreeDifference = remainder.getDegree() - other.getDegree();
+				var scale = this.field.multiply(remainder.getCoefficient(remainder.getDegree()), inverseDenominatorLeadingTerm);
 				var term = other.multiplyByMonomial(degreeDifference, scale);
 				var iterationQuotient = this.field.buildMonomial(degreeDifference, scale);
 				quotient = quotient.addOrSubtract(iterationQuotient);

@@ -58,7 +58,7 @@ Decoder.decode=function(bits)
 {
 	var parser = new BitMatrixParser(bits);
 	var version = parser.readVersion();
-	var ecLevel = parser.readFormatInformation().ErrorCorrectionLevel;
+	var ecLevel = parser.readFormatInformation().getErrorCorrectionLevel();
 	
 	// Read codewords
 	var codewords = parser.readCodewords();
@@ -70,7 +70,7 @@ Decoder.decode=function(bits)
 	var totalBytes = 0;
 	for (var i = 0; i < dataBlocks.length; i++)
 	{
-		totalBytes += dataBlocks[i].NumDataCodewords;
+		totalBytes += dataBlocks[i].getNumDataCodewords();
 	}
 	var resultBytes = new Array(totalBytes);
 	var resultOffset = 0;
@@ -79,8 +79,8 @@ Decoder.decode=function(bits)
 	for (var j = 0; j < dataBlocks.length; j++)
 	{
 		var dataBlock = dataBlocks[j];
-		var codewordBytes = dataBlock.Codewords;
-		var numDataCodewords = dataBlock.NumDataCodewords;
+		var codewordBytes = dataBlock.getCodewords();
+		var numDataCodewords = dataBlock.getNumDataCodewords();
 		Decoder.correctErrors(codewordBytes, numDataCodewords);
 		for (var i = 0; i < numDataCodewords; i++)
 		{
@@ -89,7 +89,7 @@ Decoder.decode=function(bits)
 	}
 	
 	// Decode the contents of that stream of bytes
-	var reader = new QRCodeDataBlockReader(resultBytes, version.VersionNumber, ecLevel.Bits);
+	var reader = new QRCodeDataBlockReader(resultBytes, version.getVersionNumber(), ecLevel.getBits());
 	return reader;
 	//return DecodedBitStreamParser.decode(resultBytes, version, ecLevel);
 }

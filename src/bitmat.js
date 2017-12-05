@@ -43,22 +43,22 @@ function BitMatrix( width,  height)
 	for(var i=0;i<this.bits.length;i++)
 		this.bits[i]=0;
 	
-	this.__defineGetter__("Width", function()
+	this.getWidth = function()
 	{
 		return this.width;
-	});
-	this.__defineGetter__("Height", function()
+	};
+	this.getHeight = function()
 	{
 		return this.height;
-	});
-	this.__defineGetter__("Dimension", function()
+	};
+	this.getDimension = function()
 	{
 		if (this.width != this.height)
 		{
 			throw new Error("QR Error: Can't call getDimension() on a non-square matrix");
 		}
 		return this.width;
-	});
+	};
 	
 	this.get_Renamed=function( x,  y)
 		{

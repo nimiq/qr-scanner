@@ -67,7 +67,7 @@ function ReedSolomonDecoder(field)
 	this.runEuclideanAlgorithm=function( a,  b,  R)
 		{
 			// Assume a's degree is >= b's
-			if (a.Degree < b.Degree)
+			if (a.getDegree() < b.getDegree())
 			{
 				var temp = a;
 				a = b;
@@ -76,13 +76,13 @@ function ReedSolomonDecoder(field)
 			
 			var rLast = a;
 			var r = b;
-			var sLast = this.field.One;
-			var s = this.field.Zero;
-			var tLast = this.field.Zero;
-			var t = this.field.One;
+			var sLast = this.field.getOne();
+			var s = this.field.getZero();
+			var tLast = this.field.getZero();
+			var t = this.field.getOne();
 			
 			// Run Euclidean algorithm until r's degree is less than R/2
-			while (r.Degree >= Math.floor(R / 2))
+			while (r.getDegree() >= Math.floor(R / 2))
 			{
 				var rLastLast = rLast;
 				var sLastLast = sLast;
@@ -92,19 +92,19 @@ function ReedSolomonDecoder(field)
 				tLast = t;
 				
 				// Divide rLastLast by rLast, with quotient in q and remainder in r
-				if (rLast.Zero)
+				if (rLast.getZero())
 				{
 					// Oops, Euclidean algorithm already terminated?
 					throw new Error("QR Error: r_{i-1} was zero");
 				}
 				r = rLastLast;
-				var q = this.field.Zero;
-				var denominatorLeadingTerm = rLast.getCoefficient(rLast.Degree);
+				var q = this.field.getZero();
+				var denominatorLeadingTerm = rLast.getCoefficient(rLast.getDegree());
 				var dltInverse = this.field.inverse(denominatorLeadingTerm);
-				while (r.Degree >= rLast.Degree && !r.Zero)
+				while (r.getDegree() >= rLast.getDegree() && !r.getZero())
 				{
-					var degreeDiff = r.Degree - rLast.Degree;
-					var scale = this.field.multiply(r.getCoefficient(r.Degree), dltInverse);
+					var degreeDiff = r.getDegree() - rLast.getDegree();
+					var scale = this.field.multiply(r.getCoefficient(r.getDegree()), dltInverse);
 					q = q.addOrSubtract(this.field.buildMonomial(degreeDiff, scale));
 					r = r.addOrSubtract(rLast.multiplyByMonomial(degreeDiff, scale));
 					//r.EXE();
@@ -128,7 +128,7 @@ function ReedSolomonDecoder(field)
 	this.findErrorLocations=function( errorLocator)
 		{
 			// This is a direct application of Chien's search
-			var numErrors = errorLocator.Degree;
+			var numErrors = errorLocator.getDegree();
 			if (numErrors == 1)
 			{
 				// shortcut

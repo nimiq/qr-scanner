@@ -28,14 +28,14 @@ function ErrorCorrectionLevel(ordinal,  bits, name)
 	this.ordinal_Renamed_Field = ordinal;
 	this.bits = bits;
 	this.name = name;
-	this.__defineGetter__("Bits", function()
+	this.getBits = function()
 	{
 		return this.bits;
-	});
-	this.__defineGetter__("Name", function()
+	};
+	this.getName = function()
 	{
 		return this.name;
-	});
+	};
 	this.ordinal=function()
 	{
 		return this.ordinal_Renamed_Field;

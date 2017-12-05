@@ -25,13 +25,8 @@
   },
   "homepage": "https://github.com/nimiq/qr-scanner#readme",
   "devDependencies": {
-    "babel-core": "^6.26.0",
-    "babel-preset-env": "^1.6.1",
+    "google-closure-compiler": "^20171112.0.0",
     "gulp": "^3.9.1",
-    "gulp-babel": "^7.0.0",
-    "gulp-concat": "^2.6.1",
-    "gulp-sourcemaps": "^2.6.1",
-    "gulp-uglify": "^3.0.0",
-    "merge2": "^1.2.0"
+    "gulp-sourcemaps": "^2.6.1"
   }
 }

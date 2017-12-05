@@ -28,20 +28,20 @@ function DataBlock(numDataCodewords,  codewords)
 	this.numDataCodewords = numDataCodewords;
 	this.codewords = codewords;
 	
-	this.__defineGetter__("NumDataCodewords", function()
+	this.getNumDataCodewords = function()
 	{
 		return this.numDataCodewords;
-	});
-	this.__defineGetter__("Codewords", function()
+	};
+	this.getCodewords = function()
 	{
 		return this.codewords;
-	});
+	};
 }	
 	
 DataBlock.getDataBlocks=function(rawCodewords,  version,  ecLevel)
 {
 	
-	if (rawCodewords.length != version.TotalCodewords)
+	if (rawCodewords.length != version.getTotalCodewords())
 	{
 		throw new Error("QR Error: ArgumentException");
 	}
@@ -55,7 +55,7 @@ DataBlock.getDataBlocks=function(rawCodewords,  version,  ecLevel)
 	var ecBlockArray = ecBlocks.getECBlocks();
 	for (var i = 0; i < ecBlockArray.length; i++)
 	{
-		totalBlocks += ecBlockArray[i].Count;
+		totalBlocks += ecBlockArray[i].getCount();
 	}
 	
 	// Now establish DataBlocks of the appropriate size and number of data codewords
@@ -64,10 +64,10 @@ DataBlock.getDataBlocks=function(rawCodewords,  version,  ecLevel)
 	for (var j = 0; j < ecBlockArray.length; j++)
 	{
 		var ecBlock = ecBlockArray[j];
-		for (var i = 0; i < ecBlock.Count; i++)
+		for (var i = 0; i < ecBlock.getCount(); i++)
 		{
-			var numDataCodewords = ecBlock.DataCodewords;
-			var numBlockCodewords = ecBlocks.ECCodewordsPerBlock + numDataCodewords;
+			var numDataCodewords = ecBlock.getDataCodewords();
+			var numBlockCodewords = ecBlocks.getECCodewordsPerBlock() + numDataCodewords;
 			result[numResultBlocks++] = new DataBlock(numDataCodewords, new Array(numBlockCodewords));
 		}
 	}
@@ -87,7 +87,7 @@ DataBlock.getDataBlocks=function(rawCodewords,  version,  ecLevel)
 	}
 	longerBlocksStartAt++;
 	
-	var shorterBlocksNumDataCodewords = shorterBlocksTotalCodewords - ecBlocks.ECCodewordsPerBlock;
+	var shorterBlocksNumDataCodewords = shorterBlocksTotalCodewords - ecBlocks.getECCodewordsPerBlock();
 	// The last elements of result may be 1 element longer;
 	// first fill out as many elements as all of them have
 	var rawCodewordsOffset = 0;

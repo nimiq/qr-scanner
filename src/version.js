@@ -29,14 +29,14 @@ function ECB(count,  dataCodewords)
 	this.count = count;
 	this.dataCodewords = dataCodewords;
 	
-	this.__defineGetter__("Count", function()
+	this.getCount = function()
 	{
 		return this.count;
-	});
-	this.__defineGetter__("DataCodewords", function()
+	};
+	this.getDataCodewords = function()
 	{
 		return this.dataCodewords;
-	});
+	};
 }
 
 function ECBlocks( ecCodewordsPerBlock,  ecBlocks1,  ecBlocks2)
@@ -47,17 +47,17 @@ function ECBlocks( ecCodewordsPerBlock,  ecBlocks1,  ecBlocks2)
 	else
 		this.ecBlocks = new Array(ecBlocks1);
 	
-	this.__defineGetter__("ECCodewordsPerBlock", function()
+	this.getECCodewordsPerBlock = function()
 	{
 		return this.ecCodewordsPerBlock;
-	});
+	};
 	
-	this.__defineGetter__("TotalECCodewords", function()
+	this.getTotalECCodewords = function()
 	{
-		return  this.ecCodewordsPerBlock * this.NumBlocks;
-	});
+		return  this.ecCodewordsPerBlock * this.getNumBlocks();
+	};
 	
-	this.__defineGetter__("NumBlocks", function()
+	this.getNumBlocks = function()
 	{
 		var total = 0;
 		for (var i = 0; i < this.ecBlocks.length; i++)
@@ -65,7 +65,7 @@ function ECBlocks( ecCodewordsPerBlock,  ecBlocks1,  ecBlocks2)
 			total += this.ecBlocks[i].length;
 		}
 		return total;
-	});
+	};
 	
 	this.getECBlocks=function()
 			{
@@ -80,36 +80,36 @@ function Version( versionNumber,  alignmentPatternCenters,  ecBlocks1,  ecBlocks
 	this.ecBlocks = new Array(ecBlocks1, ecBlocks2, ecBlocks3, ecBlocks4);
 	
 	var total = 0;
-	var ecCodewords = ecBlocks1.ECCodewordsPerBlock;
+	var ecCodewords = ecBlocks1.getECCodewordsPerBlock();
 	var ecbArray = ecBlocks1.getECBlocks();
 	for (var i = 0; i < ecbArray.length; i++)
 	{
 		var ecBlock = ecbArray[i];
-		total += ecBlock.Count * (ecBlock.DataCodewords + ecCodewords);
+		total += ecBlock.getCount() * (ecBlock.getDataCodewords() + ecCodewords);
 	}
 	this.totalCodewords = total;
 	
-	this.__defineGetter__("VersionNumber", function()
+	this.getVersionNumber = function()
 	{
 		return  this.versionNumber;
-	});
+	};
 	
-	this.__defineGetter__("AlignmentPatternCenters", function()
+	this.getAlignmentPatternCenters = function()
 	{
 		return  this.alignmentPatternCenters;
-	});
-	this.__defineGetter__("TotalCodewords", function()
+	};
+	this.getTotalCodewords = function()
 	{
 		return  this.totalCodewords;
-	});
-	this.__defineGetter__("DimensionForVersion", function()
+	};
+	this.getDimensionForVersion = function()
 	{
 		return  17 + 4 * this.versionNumber;
-	});
+	};
 	
 	this.buildFunctionPattern=function()
 		{
-			var dimension = this.DimensionForVersion;
+			var dimension = this.getDimensionForVersion();
 			var bitMatrix = new BitMatrix(dimension);
 			
 			// Top left finder pattern + separator + format
@@ -195,7 +195,7 @@ Version.decodeVersionInformation=function( versionBits)
 		// Do the version info bits match exactly? done.
 		if (targetVersion == versionBits)
 		{
-			return this.getVersionForNumber(i + 7);
+			return Version.getVersionForNumber(i + 7);
 		}
 		// Otherwise see if this is the closest to a real version info bit string
 		// we have seen so far
@@ -210,7 +210,7 @@ Version.decodeVersionInformation=function( versionBits)
 	// differ in less than 4 bits.
 	if (bestDifference <= 3)
 	{
-		return this.getVersionForNumber(bestVersion);
+		return Version.getVersionForNumber(bestVersion);
 	}
 	// If we didn't find a close enough match, fail
 	return null;

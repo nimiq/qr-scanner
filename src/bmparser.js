@@ -25,7 +25,7 @@
 
 function BitMatrixParser(bitMatrix)
 {
-	var dimension = bitMatrix.Dimension;
+	var dimension = bitMatrix.getDimension();
 	if (dimension < 21 || (dimension & 0x03) != 1)
 	{
 		throw new Error("QR Error: Error BitMatrixParser");
@@ -69,7 +69,7 @@ function BitMatrixParser(bitMatrix)
 			}
 			
 			// Hmm, failed. Try the top-right/bottom-left pattern
-			var dimension = this.bitMatrix.Dimension;
+			var dimension = this.bitMatrix.getDimension();
 			formatInfoBits = 0;
 			var iMin = dimension - 8;
 			for (var i = dimension - 1; i >= iMin; i--)
@@ -96,7 +96,7 @@ function BitMatrixParser(bitMatrix)
 				return this.parsedVersion;
 			}
 			
-			var dimension = this.bitMatrix.Dimension;
+			var dimension = this.bitMatrix.getDimension();
 			
 			var provisionalVersion = (dimension - 17) >> 2;
 			if (provisionalVersion <= 6)
@@ -116,7 +116,7 @@ function BitMatrixParser(bitMatrix)
 			}
 			
 			this.parsedVersion = Version.decodeVersionInformation(versionBits);
-			if (this.parsedVersion != null && this.parsedVersion.DimensionForVersion == dimension)
+			if (this.parsedVersion != null && this.parsedVersion.getDimensionForVersion() == dimension)
 			{
 				return this.parsedVersion;
 			}
@@ -132,7 +132,7 @@ function BitMatrixParser(bitMatrix)
 			}
 			
 			this.parsedVersion = Version.decodeVersionInformation(versionBits);
-			if (this.parsedVersion != null && this.parsedVersion.DimensionForVersion == dimension)
+			if (this.parsedVersion != null && this.parsedVersion.getDimensionForVersion() == dimension)
 			{
 				return this.parsedVersion;
 			}
@@ -146,14 +146,14 @@ function BitMatrixParser(bitMatrix)
 			
 			// Get the data mask for the format used in this QR Code. This will exclude
 			// some bits from reading as we wind through the bit matrix.
-			var dataMask = DataMask.forReference( formatInfo.DataMask);
-			var dimension = this.bitMatrix.Dimension;
+			var dataMask = DataMask.forReference( formatInfo.getDataMask());
+			var dimension = this.bitMatrix.getDimension();
 			dataMask.unmaskBitMatrix(this.bitMatrix, dimension);
 			
 			var functionPattern = version.buildFunctionPattern();
 			
 			var readingUp = true;
-			var result = new Array(version.TotalCodewords);
+			var result = new Array(version.getTotalCodewords());
 			var resultOffset = 0;
 			var currentByte = 0;
 			var bitsRead = 0;
@@ -194,7 +194,7 @@ function BitMatrixParser(bitMatrix)
 				}
 				readingUp ^= true; // readingUp = !readingUp; // switch directions
 			}
-			if (resultOffset != version.TotalCodewords)
+			if (resultOffset != version.getTotalCodewords())
 			{
 				throw new Error("QR Error: Error readCodewords");
 			}

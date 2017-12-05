@@ -33,14 +33,14 @@ function FormatInformation(formatInfo)
 	this.errorCorrectionLevel = ErrorCorrectionLevel.forBits((formatInfo >> 3) & 0x03);
 	this.dataMask =  (formatInfo & 0x07);
 
-	this.__defineGetter__("ErrorCorrectionLevel", function()
+	this.getErrorCorrectionLevel = function()
 	{
 		return this.errorCorrectionLevel;
-	});
-	this.__defineGetter__("DataMask", function()
+	};
+	this.getDataMask = function()
 	{
 		return this.dataMask;
-	});
+	};
 	this.GetHashCode=function()
 	{
 		return (this.errorCorrectionLevel.ordinal() << 3) |  this.dataMask;
@@ -85,7 +85,7 @@ FormatInformation.doDecodeFormatInformation=function( maskedFormatInfo)
 			// Found an exact match
 			return new FormatInformation(decodeInfo[1]);
 		}
-		var bitsDifference = this.numBitsDiffering(maskedFormatInfo, targetInfo);
+		var bitsDifference = FormatInformation.numBitsDiffering(maskedFormatInfo, targetInfo);
 		if (bitsDifference < bestDifference)
 		{
 			bestFormatInfo = decodeInfo[1];
