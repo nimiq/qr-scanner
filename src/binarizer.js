@@ -83,6 +83,9 @@ class Binarizer {
             }
             rowStart += imageWidth;
         }
+        // Small bias towards black by moving the threshold up. We do this, as in the finder patterns white holes tend
+        // to appear which makes them undetectable.
+        const blackBias = 1.1;
         if (max - min > Binarizer.MIN_DYNAMIC_RANGE) {
             // The values span a minimum dynamic range, so we can assume we have bright and dark pixels. Return the
             // average of min and max as threshold. We could also compute the real average of all pixel but following
@@ -90,7 +93,9 @@ class Binarizer {
             // then by (min + max)/2 we make the cut really between those two classes. If using the average over all
             // pixel then in a block of mostly bright pixels and few dark pixels, the avg would tend to the bright side
             // and darker bright pixels could be interpreted as dark.
-            return (min + max) / 2;
+            const threshold = (min + max) / 2;
+            const maxBias = (min + max) / 4;
+            return Math.min(255, threshold + maxBias, threshold * blackBias);
         } else {
             // We have a low dynamic range and assume the block is of solid bright or dark color.
             // TODO this zxing implementation is somewhat weird. Think of a better threshold propagation strategy.
@@ -103,7 +108,7 @@ class Binarizer {
             //   brightness in block we are propagating from
             if (blockIndexX === 0 || blockIndexY === 0) {
                 // cant compare to the neighbours. Assume it's a light background
-                return min / 2;
+                return min - 1;
             } else {
                 const myIndex = blockIndexY * blockCountX + blockIndexX;
                 const leftBlockThreshold = blockThresholds[myIndex - 1];
@@ -111,9 +116,10 @@ class Binarizer {
                 const topLeftBlockThreshold = blockCountX[myIndex - blockCountX - 1];
                 const neighbourAverage = (leftBlockThreshold + topBlockThreshold + topLeftBlockThreshold) / 3;
                 if (neighbourAverage > min) {
-                    return neighbourAverage;
+                    return neighbourAverage; // no need to apply black bias as it was already applied to neighbors
                 } else {
-                    return min / 2;
+                    // the block is brighter than its neighbors and we assume it to be white
+                    return min - 1;
                 }
             }
         }
