@@ -18,6 +18,11 @@ self.onmessage = event => {
                 data: result
             });
         }
+    } else if (type === 'grayscaleWeights') {
+        if (data.red + data.green + data.blue !== 256) {
+            throw new Error('Weights have to sum up to 256');
+        }
+        qrcode.grayscaleWeights = data;
     }
 };
 

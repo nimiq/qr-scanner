@@ -47,6 +47,20 @@ qrWorker.addEventListener('message', event => {
 });
 ```
 
+Change the weights for red, green and blue in the grayscale computation to improve contrast for QR codes of a
+specific color:
+
+```js
+qrWorker.postMessage({
+    type: 'grayscaleWeights',
+    data: {
+        red: redWeight,
+        green: greenWeight,
+        blue: blueWeight
+    }
+});
+```
+
 To enable debug mode:
 ```js
 qrWorker.postMessage({

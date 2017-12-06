@@ -1,7 +1,7 @@
 class QrScanner extends XElement {
     onCreate() {
         this._qrWorker = new Worker('/qr-scanner/qr-scanner-worker.min.js');
-        this._qrWorker.onmessage = event => this._handleWorkerMessage(event);
+        this._qrWorker.addEventListener('message', event => this._handleWorkerMessage(event));
         this.$video = this.$('video');
         this.$canvas = this.$('canvas');
         this.$debugCanvas = null;
@@ -113,6 +113,13 @@ class QrScanner extends XElement {
             document.body.appendChild(this.$debugCanvas);
         }
         this.$debugCanvas.style.display = isDebug ? 'block' : 'none';
+    }
+
+    setGrayscaleWeights(red, green, blue) {
+        this._qrWorker.postMessage({
+            type: 'grayscaleWeights',
+            data: { red, green, blue }
+        });
     }
 }
 
