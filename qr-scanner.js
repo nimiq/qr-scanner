@@ -17,17 +17,17 @@ class QrScanner extends XElement {
     }
 
     _updateSourceRect() {
-        var smallestDimension = Math.min(this.$video.videoWidth, this.$video.videoHeight);
+        const smallestDimension = Math.min(this.$video.videoWidth, this.$video.videoHeight);
         this._sourceRectSize = Math.round(2 / 3 * smallestDimension);
 
-        var scannerWidth = this.$el.offsetWidth;
-        var scannerHeight = this.$el.offsetHeight;
-        var widthRatio = this.$video.videoWidth / scannerWidth;
-        var heightRatio = this.$video.videoHeight / scannerHeight;
-        var scaleFactor = 1 / (Math.min(heightRatio, widthRatio) || 1);
-        var scaledOverlaySize = this._sourceRectSize * scaleFactor;
-        var borderWidth = Math.max(0, (scannerWidth - scaledOverlaySize) / 2) + 'px';
-        var borderHeight = Math.max(0, (scannerHeight - scaledOverlaySize) / 2) + 'px';
+        const scannerWidth = this.$el.offsetWidth;
+        const scannerHeight = this.$el.offsetHeight;
+        const widthRatio = this.$video.videoWidth / scannerWidth;
+        const heightRatio = this.$video.videoHeight / scannerHeight;
+        const scaleFactor = 1 / (Math.min(heightRatio, widthRatio) || 1);
+        const scaledOverlaySize = this._sourceRectSize * scaleFactor;
+        const borderWidth = Math.max(0, (scannerWidth - scaledOverlaySize) / 2) + 'px';
+        const borderHeight = Math.max(0, (scannerHeight - scaledOverlaySize) / 2) + 'px';
         this.$overlay.style.borderTopWidth = borderHeight;
         this.$overlay.style.borderBottomWidth = borderHeight;
         this.$overlay.style.borderLeftWidth = borderWidth;
@@ -39,7 +39,7 @@ class QrScanner extends XElement {
         const x0 = (this.$video.videoWidth - this._sourceRectSize) / 2;
         const y0 = (this.$video.videoHeight - this._sourceRectSize) / 2;
         this.$context.drawImage(this.$video, x0, y0, this._sourceRectSize, this._sourceRectSize, 0, 0, this._canvasSize, this._canvasSize);
-        var imageData = this.$context.getImageData(0, 0, this._canvasSize, this._canvasSize);
+        const imageData = this.$context.getImageData(0, 0, this._canvasSize, this._canvasSize);
         this._qrWorker.postMessage({
             type: 'decode',
             data: imageData
@@ -47,8 +47,8 @@ class QrScanner extends XElement {
     }
 
     _handleWorkerMessage(event) {
-        var type = event.data.type;
-        var data = event.data.data;
+        const type = event.data.type;
+        const data = event.data.data;
         if (type === 'qrResult') {
             if (data !== null) {
                 this.fire('x-decoded', data);
@@ -122,17 +122,3 @@ class QrScanner extends XElement {
         });
     }
 }
-
-
-
-// const video = this.$('video');
-// navigator.mediaDevices.enumerateDevices()
-//     .then(function(devices) {
-//         devices.forEach(function(device) {
-//             console.log(device.kind + ": " + device.label +
-//                 " id = " + device.deviceId);
-//         });
-//     })
-// navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-//     .then(stream => video.srcObject = stream)
-//     .catch(console.error);
