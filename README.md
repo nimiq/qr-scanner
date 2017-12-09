@@ -17,8 +17,8 @@ In this library, several improvements have been applied over the original port:
 
 ## Usage
 
-You can either use the ready to use UI (index.html + qr-scanner.js + qr-scanner-wroker.min.js, based on the lightweight [X-Element frontend framework](https://github.com/nimiq/x-element))
-or use just the qr-scanner-wroker.min.js Webworker as follows:
+You can either use the ready to use UI (index.html + qr-scanner.js + qr-scanner-worker.min.js, based on the lightweight [X-Element frontend framework](https://github.com/nimiq/x-element))
+or use just the qr-scanner-worker.min.js Webworker as follows:
 
 Create a new Worker:
 ```js
@@ -60,6 +60,22 @@ qrWorker.postMessage({
 });
 ```
 
+## Building the project
+The project is prebuild in qr-scanner-worker.min.js. Building yourself is only neccessary if you want to change the code in
+the /src folder. Nodejs and Java are required for building.
+
+Install required build packages:
+```batch
+npm install
+```
+
+Building:
+```batch
+gulp build
+```
+
+## Debug Mode
+
 To enable debug mode:
 ```js
 qrWorker.postMessage({
@@ -77,18 +93,4 @@ qrWorker.addEventListener('message', event => {
       canvasContext.putImageData(data, 0, 0);
   }
 });
-```
-
-## Building the project
-The project is prebuild in qr-scanner-worker.min.js. Building yourself is only neccessary if you want to change the code in
-the /src folder. Nodejs and Java are required for building.
-
-Install required build packages:
-```batch
-npm install
-```
-
-Building:
-```batch
-gulp build
 ```
