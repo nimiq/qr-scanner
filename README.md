@@ -1,19 +1,18 @@
 # qr-scanner
 
-Javascript QR Code Scanner based on [Lazar Lazslos javascript port](https://github.com/LazarSoft/jsqrcode) of [Googles ZXing library](https://github.com/zxing/zxing).
+Javascript QR Code Scanner based on [Lazar Lazslo's javascript port](https://github.com/LazarSoft/jsqrcode) of [Google's ZXing library](https://github.com/zxing/zxing).
 
 In this library, several improvements have been applied over the original port:
 
-- This library uses an improved binarizer for transforming color input images into black and white images in the preprocessing step 
-which makes it more tolerant to shades and reflections on the screen.
+- Lightweight: ~33.7 kB (~12 kB gzipped) minified with Google's closure compiler.
 
-- The qr scanner can be configured for better performance on colored QR codes.
+- Improved binarizer which makes it more tolerant to shades and reflections on the screen.
 
-- The scanner runs in a WebWorker which keeps the main / UI thread responsive.
+- Can be configured for better performance on colored QR codes.
 
-- The library was changed to be compatible with Googles closure compiler and compiled to just ~33.7 kb of javascript (~12 kb gzipped).
+- Runs in a WebWorker which keeps the main / UI thread responsive.
 
-- Work on higher resolution pictures by default.
+- Works on higher resolution pictures by default.
 
 
 ## Usage
@@ -81,8 +80,8 @@ qrWorker.addEventListener('message', event => {
 ```
 
 ## Building the project
-The project is prebuild in qr-scanner-worker.min.js. Building yourself is only neccessary if you wanna change the code in
-the /src folder. Nodejs and Java are required prequesites for building.
+The project is prebuild in qr-scanner-worker.min.js. Building yourself is only neccessary if you want to change the code in
+the /src folder. Nodejs and Java are required for building.
 
 Install required build packages:
 ```batch
