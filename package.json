@@ -27,6 +27,7 @@
   "devDependencies": {
     "google-closure-compiler": "^20171112.0.0",
     "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.1",
     "gulp-sourcemaps": "^2.6.1"
   }
 }

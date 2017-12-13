@@ -17,50 +17,61 @@ In this library, several improvements have been applied over the original port:
 
 ## Usage
 
-You can either use the ready to use UI (index.html + qr-scanner.js + qr-scanner-worker.min.js, based on the lightweight [X-Element frontend framework](https://github.com/nimiq/x-element))
-or use just the qr-scanner-worker.min.js Webworker as follows:
+### Plain 
 
-Create a new Worker:
-```js
-const qrWorker = new Worker('/path/to/qr-scanner-worker.min.js');
+#### 1. Import the library:
+```
+<script src="qr-scanner-lib.min.js"></script>
 ```
 
-Send [ImageData](https://developer.mozilla.org/en-US/docs/Web/API/ImageData) to the worker:
-```js
-qrWorker.postMessage({
-    type: 'decode',
-    data: imageData
-}, [imageData.data.buffer]);
+#### 2. Create HTML
+You need both a `<video>` and a `<canvas>` element: 
+```html
+<video></video>
+<canvas></canvas>
+
 ```
 
-Handle the result from the qr worker:
+#### 3. Instanciate Library
 ```js
-qrWorker.addEventListener('message', event => {
-  const type = event.data.type;
-  const data = event.data.data;
-  if (type === 'qrResult') {
-      if (data !== null) {
-          alert(data);
-      }
-  }
-});
+const qrScanner = new QrScannerLib(videoElem, canvasElem, (text) =>{
+  console.log('decoded qr code:', text)
+})
 ```
 
+### As X-Element
+Alternatively you can use this library as an [X-Element](https://github.com/nimiq/x-element)):
+
+#### 1. Import the element:
+```
+<script src="qr-scanner.min.js"></script>
+```
+
+#### 2. Create HTML
+You need both a `<video>` and a `<canvas>` element: 
+```html
+<x-qr-scanner>
+    <video muted autoplay playsinline></video>
+    <canvas></canvas>
+</x-qr-scanner>
+
+```
+
+#### 3. Instanciate Library
+```js
+const qrScanner = new QrScanner()
+```
+
+
+### Color Correction
 Change the weights for red, green and blue in the grayscale computation to improve contrast for QR codes of a
 specific color:
 
 ```js
-qrWorker.postMessage({
-    type: 'grayscaleWeights',
-    data: {
-        red: redWeight,
-        green: greenWeight,
-        blue: blueWeight
-    }
-});
+qrScanner.setGrayscaleWeights(red, green, blue)
 ```
 
-## Building the project
+## Build the project
 The project is prebuild in qr-scanner-worker.min.js. Building yourself is only neccessary if you want to change the code in
 the /src folder. Nodejs and Java are required for building.
 
@@ -78,7 +89,7 @@ gulp build
 
 To enable debug mode:
 ```js
-qrWorker.postMessage({
+qrScanner._qrWorker.postMessage({
     type: 'setDebug',
     data: true
 });
@@ -86,7 +97,7 @@ qrWorker.postMessage({
 
 To handle the debug image:
 ```js
-qrWorker.addEventListener('message', event => {
+qrScanner._qrWorker.addEventListener('message', event => {
   const type = event.data.type;
   const data = event.data.data;
   if (type === 'debugImage') {

@@ -1,38 +1,56 @@
-var gulp = require('gulp');
-var sourcemaps = require('gulp-sourcemaps');
-var closureCompiler = require('google-closure-compiler').gulp();
+const gulp = require('gulp');
+const sourcemaps = require('gulp-sourcemaps');
+const closureCompiler = require('google-closure-compiler').gulp();
+const concat = require('gulp-concat');
 
-gulp.task('build', function() {
-    return gulp.src([
-            './src/worker.js',
-            './src/binarizer.js',
-            './src/grid.js',
-            './src/version.js',
-            './src/detector.js',
-            './src/formatinf.js',
-            './src/errorlevel.js',
-            './src/bitmat.js',
-            './src/datablock.js',
-            './src/bmparser.js',
-            './src/datamask.js',
-            './src/rsdecoder.js',
-            './src/gf256poly.js',
-            './src/gf256.js',
-            './src/decoder.js',
-            './src/qrcode.js',
-            './src/findpat.js',
-            './src/alignpat.js',
-            './src/databr.js'
-        ], { base: './' })
-        .pipe(sourcemaps.init())
-        .pipe(closureCompiler({
-            compilation_level: 'ADVANCED',
-            warning_level: 'DEFAULT',
-            language_in: 'ECMASCRIPT6_STRICT',
-            language_out: 'ECMASCRIPT5_STRICT',
-            output_wrapper: '(function(){\n%output%\n}).call(this)',
-            js_output_file: 'qr-scanner-worker.min.js'
-        }))
-        .pipe(sourcemaps.write('.'))
-        .pipe(gulp.dest('.'));
-});
+
+gulp.task('default', ['build-entry', 'build-library', 'build-worker'])
+
+gulp.task('build-entry', () =>
+    gulp.src([
+        './src/qr-scanner.js', 
+        './src/qr-scanner-lib.js'])
+    .pipe(concat('qr-scanner.min.js'))
+    .pipe(gulp.dest('.'))
+)
+
+gulp.task('build-library', () =>
+    gulp.src([
+        './src/qr-scanner-lib.js'])
+    .pipe(concat('qr-scanner-lib.min.js'))
+    .pipe(gulp.dest('.'))
+)
+
+gulp.task('build-worker', () =>
+    gulp.src([
+        './src/worker.js',
+        './src/lib/binarizer.js',
+        './src/lib/grid.js',
+        './src/lib/version.js',
+        './src/lib/detector.js',
+        './src/lib/formatinf.js',
+        './src/lib/errorlevel.js',
+        './src/lib/bitmat.js',
+        './src/lib/datablock.js',
+        './src/lib/bmparser.js',
+        './src/lib/datamask.js',
+        './src/lib/rsdecoder.js',
+        './src/lib/gf256poly.js',
+        './src/lib/gf256.js',
+        './src/lib/decoder.js',
+        './src/lib/qrcode.js',
+        './src/lib/findpat.js',
+        './src/lib/alignpat.js',
+        './src/lib/databr.js'
+    ], { base: './' })
+    .pipe(sourcemaps.init())
+    .pipe(closureCompiler({
+        compilation_level: 'ADVANCED',
+        warning_level: 'DEFAULT',
+        language_in: 'ECMASCRIPT6_STRICT',
+        language_out: 'ECMASCRIPT5_STRICT',
+        output_wrapper: '(function(){\n%output%\n}).call(this)',
+        js_output_file: 'qr-scanner-worker.min.js'
+    }))
+    .pipe(sourcemaps.write('.'))
+    .pipe(gulp.dest('.')));
