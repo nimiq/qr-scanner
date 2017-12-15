@@ -40,7 +40,7 @@ const qrScanner = new QrScannerLib(videoElem, canvasElem, (text) =>{
 ```
 
 ### As X-Element
-Alternatively you can use this library as an [X-Element](https://github.com/nimiq/x-element)):
+Alternatively you can use this library as an [X-Element](https://github.com/nimiq/x-element):
 
 #### 1. Import the element:
 ```
