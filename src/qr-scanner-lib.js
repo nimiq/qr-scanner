@@ -93,4 +93,8 @@ class QrScannerLib {
             data: { red, green, blue }
         });
     }
+
+    scanImage(imageFile){
+        return Promise.resolve('<< detected >>')
+    }
 }
