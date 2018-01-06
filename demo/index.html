@@ -73,7 +73,7 @@
         }
         QrScannerLib.scanImage(file)
             .then(result => setResult(fileQrResult, result))
-            .catch(() => setResult(fileQrResult, 'No QR code found.'));
+            .catch(e => setResult(fileQrResult, e || 'No QR code found.'));
     });
 
 

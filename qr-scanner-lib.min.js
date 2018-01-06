@@ -141,8 +141,8 @@ class QrScannerLib {
     /* async */
     static _loadImage(imageOrFileOrUrl) {
         if (imageOrFileOrUrl instanceof HTMLCanvasElement || imageOrFileOrUrl instanceof HTMLVideoElement
-            || typeof('ImageBitmap')!=='undefined' && imageOrFileOrUrl instanceof ImageBitmap
-            || typeof('OffscreenCanvas')!=='undefined' && imageOrFileOrUrl instanceof OffscreenCanvas) {
+            || typeof(ImageBitmap)!=='undefined' && imageOrFileOrUrl instanceof ImageBitmap
+            || typeof(OffscreenCanvas)!=='undefined' && imageOrFileOrUrl instanceof OffscreenCanvas) {
             return Promise.resolve(imageOrFileOrUrl);
         } else if (imageOrFileOrUrl instanceof Image) {
             return QrScannerLib._awaitImageLoad(imageOrFileOrUrl).then(() => imageOrFileOrUrl);

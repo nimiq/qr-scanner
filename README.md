@@ -32,7 +32,7 @@ You need both a `<video>` and a `<canvas>` element:
 
 ```
 
-#### 3. Instanciate Library
+#### 3. Instantiate Library
 ```js
 const qrScanner = new QrScannerLib(videoElem, canvasElem, (text) =>{
   console.log('decoded qr code:', text)
@@ -57,7 +57,7 @@ You need both a `<video>` and a `<canvas>` element:
 
 ```
 
-#### 3. Instanciate Library
+#### 3. Instantiate Library
 ```js
 const qrScanner = new QrScanner()
 ```
