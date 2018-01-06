@@ -8,7 +8,7 @@ gulp.task('default', ['build-entry', 'build-library', 'build-worker'])
 
 gulp.task('build-entry', () =>
     gulp.src([
-        './src/qr-scanner.js', 
+        './src/qr-scanner.js',
         './src/qr-scanner-lib.js'])
     .pipe(concat('qr-scanner.min.js'))
     .pipe(gulp.dest('.'))

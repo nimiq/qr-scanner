@@ -19,13 +19,6 @@ class QrScannerLib {
     _updateSourceRect() {
         const smallestDimension = Math.min(this.$video.videoWidth, this.$video.videoHeight);
         this._sourceRectSize = Math.round(2 / 3 * smallestDimension);
-
-        const scannerWidth = this.$video.parentElement.offsetWidth;
-        const scannerHeight = this.$video.parentElement.offsetHeight;
-        const widthRatio = this.$video.videoWidth / scannerWidth;
-        const heightRatio = this.$video.videoHeight / scannerHeight;
-        const scaleFactor = 1 / (Math.min(heightRatio, widthRatio) || 1);
-        const scaledOverlaySize = this._sourceRectSize * scaleFactor;
     }
 
     _scanFrame() {
@@ -94,7 +87,86 @@ class QrScannerLib {
         });
     }
 
-    scanImage(imageFile){
-        return Promise.resolve('<< detected >>')
+    static scanImage(imageOrFileOrUrl) {
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(reject, 3000);
+            const worker = new Worker('/qr-scanner/qr-scanner-worker.min.js');
+            worker.onerror = reject;
+            worker.onmessage = event => {
+                if (event.data.type !== 'qrResult') {
+                    return;
+                }
+                clearTimeout(timeout);
+                if (event.data.data !== null) {
+                    resolve(event.data.data);
+                } else {
+                    reject();
+                }
+            };
+            QrScannerLib._loadImage(imageOrFileOrUrl).then(image => {
+                const imageData = QrScannerLib._getImageData(image);
+                worker.postMessage({
+                    type: 'decode',
+                    data: imageData
+                }, [imageData.data.buffer]);
+            }).catch(reject);
+        });
+    }
+
+    /* async */
+    static _getImageData(image) {
+        const canvas = document.createElement('canvas');
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const context = canvas.getContext('2d');
+        context.drawImage(image, 0, 0);
+        return context.getImageData(0, 0, image.width, image.height);
+    }
+
+    /* async */
+    static _loadImage(imageOrFileOrUrl) {
+        if (imageOrFileOrUrl instanceof HTMLCanvasElement
+            || typeof('ImageBitmap')!=='undefined' && imageOrFileOrUrl instanceof ImageBitmap) {
+            return Promise.resolve(imageOrFileOrUrl);
+        } else if (imageOrFileOrUrl instanceof Image) {
+            return QrScannerLib._awaitImageLoad(imageOrFileOrUrl).then(() => imageOrFileOrUrl);
+        } else if (imageOrFileOrUrl instanceof File || imageOrFileOrUrl instanceof URL
+            ||  typeof(imageOrFileOrUrl)==='string') {
+            const image = new Image();
+            if (imageOrFileOrUrl instanceof File) {
+                image.src = URL.createObjectURL(imageOrFileOrUrl);
+            } else {
+                image.src = imageOrFileOrUrl;
+            }
+            return QrScannerLib._awaitImageLoad(image).then(() => {
+                if (imageOrFileOrUrl instanceof File) {
+                    URL.revokeObjectURL(image.src);
+                }
+                return image;
+            });
+        } else {
+            return Promise.reject('Unsupported image type.');
+        }
+    }
+
+    /* async */
+    static _awaitImageLoad(image) {
+        return new Promise((resolve, reject) => {
+            if (image.complete && image.naturalWidth!==0) {
+                // already loaded
+                resolve();
+            } else {
+                image.onload = () => {
+                    image.onload = null;
+                    image.onerror = null;
+                    resolve();
+                };
+                image.onerror = () => {
+                    image.onload = null;
+                    image.onerror = null;
+                    reject();
+                };
+            }
+        });
     }
 }

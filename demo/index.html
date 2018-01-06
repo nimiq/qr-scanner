@@ -1,170 +1,112 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>HTML5 Camera QR UI</title>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="theme-color" content="#4285f4">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimal-ui">
-    <style>
-    html,
-    body {
-        margin: 0;
-        height: 100%;
-        overflow: hidden;
-
-        font-family: 'Helvetica Neue', Helvetica, sans-serif;
-        font-weight: 400;
-        font-size: 13px;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        text-rendering: optimizeLegibility;
-    }
-
-    body {
-        background: black;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center;
-    }
-
-    x-qr-scanner {
-        overflow: hidden;
-        width: 100%;
-        height: 100%;
-        display: block;
-    }
-
-    #qr-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        border: black solid;
-        opacity: 0.7;
-        box-sizing: border-box;
-    }
-
-    @media (min-width: 1024px) {
-        video {
-            /*will-change:transform;*/
-            transform: scale(-1, 1);
-            /* hack to flip the camera of desktops; less confusion for the user to position the phone */
-        }
-    }
-
-    #qr-canvas {
-        display: none;
-    }
-
-    #debug-canvas {
-        display: none;
-        position: absolute;
-        top: 0;
-        left: 0;
-    }
-
-    .label {
-        position: absolute;
-        max-width: 320px;
-        width: 100%;
-        box-sizing: border-box;
-        padding: 24px;
-        background: white;
-        opacity: 0;
-        word-break: break-all;
-        font-size: 16px;
-    }
-
-    .label-active {
-        transform: scale(1);
-        animation: fadeInFadeOut 7s ease-in;
-    }
-
-    @keyframes fadeInFadeOut {
-        0% {
-            opacity: 0.3;
-            transform: scale(0.3);
-        }
-        5% {
-            opacity: 1;
-            transform: scale(1);
-        }
-        70% {
-            opacity: 0.9;
-        }
-        100% {
-            opacity: 0;
-            transform: scale(0.8);
-        }
-    }
-
-    a:not([href]) {
-        color: black;
-        text-decoration: none;
-    }
-    </style>
+    <meta charset="UTF-8">
+    <title>QR Scanner Demo</title>
 </head>
-
 <body>
-    <x-qr-scanner>
-        <video muted autoplay playsinline></video>
-        <div id="qr-overlay"></div>
-        <canvas id="qr-canvas" width="400" height="400"></canvas>
-    </x-qr-scanner>
-    <a class="label">Test</a>
-</body>
-<script src="/x-element/src/x-element.js"></script>
-<script src="../qr-scanner.min.js"></script>
-<script>
-var label = document.querySelector('.label');
-
-const scanner = new QrScanner();
-scanner.active = true;
-
-scanner.$el.addEventListener('x-decoded', (e) => {
-    const decoded = e.detail;
-    console.log(decoded);
-    setLabel(decoded);
-    resetClass(decoded);
-});
-
-function setLabel(decoded) {
-    var isUrl = false;
-    try {
-        new Url(decoded);
-        isUrl = true;
-    } catch(e) {}
-    if (isUrl) {
-        label.href = decoded;
-    } else {
-        label.removeAttribute('href');
+<style>
+    canvas {
+        display: none;
     }
-    label.textContent = decoded;
-}
+    hr {
+        margin-top: 32px;
+    }
+    input[type="file"] {
+        display: block;
+        margin-bottom: 16px;
+    }
+    div {
+        margin-bottom: 16px;
+    }
+</style>
+<h1>Scan from WebCam:</h1>
+<div>
+    <video muted autoplay playsinline id="qr-video"></video>
+    <canvas id="debug-canvas"></canvas>
+</div>
+<canvas id="qr-canvas" width="400" height="400"></canvas>
+<div>
+    <input type="checkbox" id="debug-checkbox">
+    <span>Show debug image</span>
+</div>
+<b>Detected QR code: </b>
+<span id="cam-qr-result">None</span>
+<hr>
 
-var lastDecoded;
-var lastDecodedTimer;
+<h1>Scan from File:</h1>
+<input type="file" id="file-selector">
+<b>Detected QR code: </b>
+<span id="file-qr-result">None</span>
 
-function resetClass(decoded) {
-    if (decoded === lastDecoded) return;
-    clearTimeout(lastDecodedTimer);
-    lastDecodedTimer = setTimeout(() => lastDecoded = false, 3000);
-    lastDecoded = decoded;
-    label.classList.remove('label-active');
-    label.offsetWidth; // force render
-    label.classList.add('label-active');
-}
+<script src="../qr-scanner-lib.min.js"></script>
+<script type="text/javascript">
+    const video = document.getElementById('qr-video');
+    const canvas = document.getElementById('qr-canvas');
+    const debugCheckbox = document.getElementById('debug-checkbox');
+    const debugCanvas = document.getElementById('debug-canvas');
+    const debugCanvasContext = debugCanvas.getContext('2d');
+    const camQrResult = document.getElementById('cam-qr-result');
+    const fileSelector = document.getElementById('file-selector');
+    const fileQrResult = document.getElementById('file-qr-result');
+
+    function setResult(label, result) {
+        label.textContent = result;
+        label.style.color = 'teal';
+        clearTimeout(label.highlightTimeout);
+        label.highlightTimeout = setTimeout(() => label.style.color = 'inherit', 100);
+    }
+
+
+    // ####### Web Cam Scanning #######
+
+    const scanner = new QrScannerLib(video, canvas, result => setResult(camQrResult, result));
+    scanner.active = true;
+
+
+    // ####### File Scanning #######
+
+    fileSelector.addEventListener('change', event => {
+        const file = fileSelector.files[0];
+        if (!file) {
+            return;
+        }
+        QrScannerLib.scanImage(file)
+            .then(result => setResult(fileQrResult, result))
+            .catch(() => setResult(fileQrResult, 'No QR code found.'));
+    });
+
+
+    // ####### debug mode related code #######
+
+    debugCheckbox.addEventListener('change', () => setDebugMode(debugCheckbox.checked));
+
+    function setDebugMode(isDebug) {
+        const worker = scanner._qrWorker;
+        worker.postMessage({
+            type: 'setDebug',
+            data: isDebug
+        });
+        if (isDebug) {
+            debugCanvas.style.display = 'block';
+            worker.addEventListener('message', handleDebugImage);
+        } else {
+            debugCanvas.style.display = 'none';
+            worker.removeEventListener('message', handleDebugImage);
+        }
+    }
+
+    function handleDebugImage(event) {
+        const type = event.data.type;
+        if (type === 'debugImage') {
+            const imageData = event.data.data;
+            if (debugCanvas.width !== imageData.width || debugCanvas.height !== imageData.height) {
+                debugCanvas.width = imageData.width;
+                debugCanvas.height = imageData.height;
+            }
+            debugCanvasContext.putImageData(imageData, 0, 0);
+        }
+    }
 </script>
-
+</body>
 </html>
