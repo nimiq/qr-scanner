@@ -60,7 +60,7 @@
 
     // ####### Web Cam Scanning #######
 
-    const scanner = new QrScannerLib(video, canvas, result => setResult(camQrResult, result));
+    const scanner = new QrScanner(video, canvas, result => setResult(camQrResult, result));
     scanner.active = true;
 
 
@@ -71,7 +71,7 @@
         if (!file) {
             return;
         }
-        QrScannerLib.scanImage(file)
+        QrScanner.scanImage(file)
             .then(result => setResult(fileQrResult, result))
             .catch(e => setResult(fileQrResult, e || 'No QR code found.'));
     });
