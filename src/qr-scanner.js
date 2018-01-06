@@ -30,7 +30,7 @@ class QrScanner {
     _scanFrame() {
         if (this.$video.paused || this.$video.ended) return false;
         requestAnimationFrame(() => {
-            QrScannerLib.scanImage(this.$video, this._sourceRect, this._qrWorker, this.$canvas, true)
+            QrScanner.scanImage(this.$video, this._sourceRect, this._qrWorker, this.$canvas, true)
                 .then(this._onDecode, error => {
                     if (error !== 'QR code not found.') {
                         console.error(error);
@@ -111,8 +111,8 @@ class QrScanner {
             worker.addEventListener('message', onMessage);
             worker.addEventListener('error', onError);
             timeout = setTimeout(onError, 3000);
-            QrScannerLib._loadImage(imageOrFileOrUrl).then(image => {
-                const imageData = QrScannerLib._getImageData(image, sourceRect, canvas, fixedCanvasSize);
+            QrScanner._loadImage(imageOrFileOrUrl).then(image => {
+                const imageData = QrScanner._getImageData(image, sourceRect, canvas, fixedCanvasSize);
                 worker.postMessage({
                     type: 'decode',
                     data: imageData
@@ -145,7 +145,7 @@ class QrScanner {
             || typeof(OffscreenCanvas)!=='undefined' && imageOrFileOrUrl instanceof OffscreenCanvas) {
             return Promise.resolve(imageOrFileOrUrl);
         } else if (imageOrFileOrUrl instanceof Image) {
-            return QrScannerLib._awaitImageLoad(imageOrFileOrUrl).then(() => imageOrFileOrUrl);
+            return QrScanner._awaitImageLoad(imageOrFileOrUrl).then(() => imageOrFileOrUrl);
         } else if (imageOrFileOrUrl instanceof File || imageOrFileOrUrl instanceof URL
             ||  typeof(imageOrFileOrUrl)==='string') {
             const image = new Image();
@@ -154,7 +154,7 @@ class QrScanner {
             } else {
                 image.src = imageOrFileOrUrl;
             }
-            return QrScannerLib._awaitImageLoad(image).then(() => {
+            return QrScanner._awaitImageLoad(image).then(() => {
                 if (imageOrFileOrUrl instanceof File) {
                     URL.revokeObjectURL(image.src);
                 }
