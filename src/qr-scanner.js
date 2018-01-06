@@ -1,4 +1,4 @@
-class QrScanner extends XElement {
+class XQrScanner extends XElement {
     onCreate() {
         const video = this.$('video');
         const canvas = this.$('canvas');
