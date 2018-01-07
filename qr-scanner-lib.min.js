@@ -1,14 +1,16 @@
 class QrScannerLib {
-    constructor(video, canvas, onDecode) {
+    constructor(video, onDecode, canvasSize = QrScannerLib.DEFAULT_CANVAS_SIZE) {
         this.$video = video;
-        this.$canvas = canvas;
+        this.$canvas = document.createElement('canvas');
         this._onDecode = onDecode;
 
+        this.$canvas.width = canvasSize;
+        this.$canvas.height = canvasSize;
         this._sourceRect = {
             x: 0,
             y: 0,
-            width: this.$canvas.width,
-            height: this.$canvas.height
+            width: canvasSize,
+            height: canvasSize
         };
 
         this.$video.addEventListener('canplay', () => this._updateSourceRect());
@@ -189,3 +191,4 @@ class QrScannerLib {
         });
     }
 }
+QrScannerLib.DEFAULT_CANVAS_SIZE = 400;

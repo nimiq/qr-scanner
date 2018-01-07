@@ -25,7 +25,6 @@
     <video muted autoplay playsinline id="qr-video"></video>
     <canvas id="debug-canvas"></canvas>
 </div>
-<canvas id="qr-canvas" width="400" height="400"></canvas>
 <div>
     <input type="checkbox" id="debug-checkbox">
     <span>Show debug image</span>
@@ -42,7 +41,6 @@
 <script src="../qr-scanner-lib.min.js"></script>
 <script type="text/javascript">
     const video = document.getElementById('qr-video');
-    const canvas = document.getElementById('qr-canvas');
     const debugCheckbox = document.getElementById('debug-checkbox');
     const debugCanvas = document.getElementById('debug-canvas');
     const debugCanvasContext = debugCanvas.getContext('2d');
@@ -60,7 +58,7 @@
 
     // ####### Web Cam Scanning #######
 
-    const scanner = new QrScannerLib(video, canvas, result => setResult(camQrResult, result));
+    const scanner = new QrScannerLib(video, result => setResult(camQrResult, result));
     scanner.active = true;
 
 
