@@ -21,7 +21,7 @@ In this library, several improvements have been applied over the original port:
 
 #### 1. Import the library:
 ```
-<script src="qr-scanner-lib.min.js"></script>
+<script src="qr-scanner.min.js"></script>
 ```
 
 #### 2. Create HTML
