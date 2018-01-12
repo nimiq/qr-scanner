@@ -87,8 +87,9 @@ class QrScanner {
     }
 
     /* async */
-    static scanImage(imageOrFileOrUrl, sourceRect=null, worker=null, canvas=null, fixedCanvasSize=false) {
-        return new Promise((resolve, reject) => {
+    static scanImage(imageOrFileOrUrl, sourceRect=null, worker=null, canvas=null, fixedCanvasSize=false,
+                     alsoTryWithoutSourceRect=false) {
+        const promise = new Promise((resolve, reject) => {
             worker = worker || new Worker('/qr-scanner/qr-scanner-worker.min.js');
             let timeout, onMessage, onError;
             onMessage = event => {
@@ -121,6 +122,12 @@ class QrScanner {
                 }, [imageData.data.buffer]);
             }).catch(reject);
         });
+
+        if (sourceRect && alsoTryWithoutSourceRect) {
+            return promise.catch(() => QrScanner.scanImage(imageOrFileOrUrl, null, worker, canvas, fixedCanvasSize));
+        } else {
+            return promise;
+        }
     }
 
     /* async */
