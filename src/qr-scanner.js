@@ -3,6 +3,7 @@ class QrScanner {
         this.$video = video;
         this.$canvas = document.createElement('canvas');
         this._onDecode = onDecode;
+        this._active = false;
 
         this.$canvas.width = canvasSize;
         this.$canvas.height = canvasSize;
@@ -43,10 +44,13 @@ class QrScanner {
     }
 
     set active(active) {
-        if (active)
+        if (active && !this._active) {
             this._cameraOn();
-        else
+            this._active = true;
+        } else {
             this._cameraOff();
+            this._active = false;
+        }
     }
 
     _cameraOn(settingsToTry) {
