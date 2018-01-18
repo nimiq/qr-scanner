@@ -53,34 +53,58 @@ class QrScanner {
         }
     }
 
-    _cameraOn(settingsToTry) {
-        clearTimeout(this._offTimeout);
-        const defaultSettings = [{
-            facingMode: "environment",
+    _getCameraStream(facingMode, exact = false) {
+        const constraintsToTry = [{
             width: { min: 1024 }
         }, {
-            facingMode: "environment",
             width: { min: 768 }
-        }, {
-            facingMode: "environment",
-        }];
-        settingsToTry = settingsToTry || defaultSettings;
-        navigator.mediaDevices.getUserMedia({
-            video: settingsToTry.shift()
-        })
-            .then(stream => this.$video.srcObject = stream)
+        }, {}];
+
+        if (facingMode) {
+            if (exact) {
+                facingMode = { exact: facingMode };
+            }
+            constraintsToTry.forEach(constraint => constraint.facingMode = facingMode);
+        }
+        return this._getMatchingCameraStream(constraintsToTry);
+    }
+
+    _getMatchingCameraStream(constraintsToTry) {
+        if (constraintsToTry.length === 0) {
+            return Promise.reject('Camera not found.');
+        }
+        return navigator.mediaDevices.getUserMedia({
+            video: constraintsToTry.shift()
+        }).catch(() => this._getMatchingCameraStream(constraintsToTry));
+    }
+
+    _cameraOn() {
+        clearTimeout(this._offTimeout);
+        let facingMode = 'environment';
+        this._getCameraStream('environment', true)
             .catch(() => {
-                if (settingsToTry.length > 0) {
-                    this._cameraOn(settingsToTry)
-                } else {
-                    throw new Error('Couldn\'t start camera');
-                }
+                // we (probably) don't have an environment camera
+                facingMode = 'user';
+                return this._getCameraStream();
+            })
+            .then(stream => {
+                this.$video.srcObject = stream;
+                this._setVideoMirror(facingMode);
             });
     }
 
     _cameraOff() {
         this.$video.pause();
-        this._offTimeout = setTimeout(() => this.$video.srcObject.getTracks()[0].stop(), 3000);
+        this._offTimeout = setTimeout(() => {
+            this.$video.srcObject.getTracks()[0].stop();
+            this.$video.srcObject = null;
+        }, 3000);
+    }
+
+    _setVideoMirror(facingMode) {
+        // in user facing mode mirror the video to make it easier for the user to position the QR code
+        const scaleFactor = facingMode==='user'? -1 : 1;
+        this.$video.style.transform = 'scaleX(' + scaleFactor + ')';
     }
 
     setGrayscaleWeights(red, green, blue) {
