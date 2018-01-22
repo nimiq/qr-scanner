@@ -19,7 +19,7 @@ export default class QrScanner {
             this._updateSourceRect();
             this._scanFrame();
         }, false);
-        this._qrWorker = new Worker('/qr-scanner/qr-scanner-worker.min.js');
+        this._qrWorker = new Worker('/library/qr-scanner/qr-scanner-worker.min.js');
     }
 
     _updateSourceRect() {
