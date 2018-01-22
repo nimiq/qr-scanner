@@ -19,7 +19,7 @@ export default class QrScanner {
             this._updateSourceRect();
             this._scanFrame();
         }, false);
-        this._qrWorker = new Worker('/library/qr-scanner/qr-scanner-worker.min.js');
+        this._qrWorker = new Worker(QrScanner.WORKER_PATH);
     }
 
     _updateSourceRect() {
@@ -118,7 +118,7 @@ export default class QrScanner {
     static scanImage(imageOrFileOrUrl, sourceRect=null, worker=null, canvas=null, fixedCanvasSize=false,
                      alsoTryWithoutSourceRect=false) {
         const promise = new Promise((resolve, reject) => {
-            worker = worker || new Worker('/qr-scanner/qr-scanner-worker.min.js');
+            worker = worker || new Worker(QrScanner.WORKER_PATH);
             let timeout, onMessage, onError;
             onMessage = event => {
                 if (event.data.type !== 'qrResult') {
@@ -227,3 +227,4 @@ export default class QrScanner {
     }
 }
 QrScanner.DEFAULT_CANVAS_SIZE = 400;
+QrScanner.WORKER_PATH = '/library/qr-scanner/qr-scanner-worker.min.js';
