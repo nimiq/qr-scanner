@@ -38,8 +38,8 @@
 <b>Detected QR code: </b>
 <span id="file-qr-result">None</span>
 
-<script src="../qr-scanner.min.js"></script>
-<script type="text/javascript">
+<script type="module">
+    import QrScanner from "../qr-scanner.min.js";
     const video = document.getElementById('qr-video');
     const debugCheckbox = document.getElementById('debug-checkbox');
     const debugCanvas = document.getElementById('debug-canvas');

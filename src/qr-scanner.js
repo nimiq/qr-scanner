@@ -1,4 +1,4 @@
-class QrScanner {
+export default class QrScanner {
     constructor(video, onDecode, canvasSize = QrScanner.DEFAULT_CANVAS_SIZE) {
         this.$video = video;
         this.$canvas = document.createElement('canvas');

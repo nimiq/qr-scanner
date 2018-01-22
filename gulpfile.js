@@ -10,7 +10,7 @@ gulp.task('build-library', () =>
     gulp.src(['./src/qr-scanner.js'])
         .pipe(sourcemaps.init())
         .pipe(closureCompiler({
-            compilation_level: 'SIMPLE_OPTIMIZATIONS',
+            compilation_level: 'WHITESPACE_ONLY',
             warning_level: 'DEFAULT',
             language_in: 'ECMASCRIPT6_STRICT',
             language_out: 'ECMASCRIPT6_STRICT',
