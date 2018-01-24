@@ -43,16 +43,6 @@ export default class QrScanner {
         });
     }
 
-    set active(active) {
-        if (active && !this._active) {
-            this._cameraOn();
-            this._active = true;
-        } else {
-            this._cameraOff();
-            this._active = false;
-        }
-    }
-
     _getCameraStream(facingMode, exact = false) {
         const constraintsToTry = [{
             width: { min: 1024 }
@@ -78,10 +68,14 @@ export default class QrScanner {
         }).catch(() => this._getMatchingCameraStream(constraintsToTry));
     }
 
-    _cameraOn() {
+    start() {
+        if (this._active) {
+            return;
+        }
+        this._active = true;
         clearTimeout(this._offTimeout);
         let facingMode = 'environment';
-        this._getCameraStream('environment', true)
+        return this._getCameraStream('environment', true)
             .catch(() => {
                 // we (probably) don't have an environment camera
                 facingMode = 'user';
@@ -93,7 +87,11 @@ export default class QrScanner {
             });
     }
 
-    _cameraOff() {
+    stop() {
+        if (!this._active) {
+            return;
+        }
+        this._active = false;
         this.$video.pause();
         this._offTimeout = setTimeout(() => {
             this.$video.srcObject.getTracks()[0].stop();

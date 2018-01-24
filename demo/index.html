@@ -59,7 +59,7 @@
     // ####### Web Cam Scanning #######
 
     const scanner = new QrScanner(video, result => setResult(camQrResult, result));
-    scanner.active = true;
+    scanner.start();
 
 
     // ####### File Scanning #######
