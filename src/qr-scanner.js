@@ -70,7 +70,7 @@ export default class QrScanner {
 
     start() {
         if (this._active) {
-            return;
+            return Promise.resolve();
         }
         this._active = true;
         clearTimeout(this._offTimeout);
