@@ -79,11 +79,15 @@ export default class QrScanner {
             .catch(() => {
                 // we (probably) don't have an environment camera
                 facingMode = 'user';
-                return this._getCameraStream();
+                return this._getCameraStream(); // throws if we can't access the camera
             })
             .then(stream => {
                 this.$video.srcObject = stream;
                 this._setVideoMirror(facingMode);
+            })
+            .catch(e => {
+                this._active = false;
+                throw e;
             });
     }
 
