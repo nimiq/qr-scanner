@@ -1,17 +1,13 @@
-# qr-scanner
+# QR Scanner
 
 Javascript QR Code Scanner based on [Lazar Lazslo's javascript port](https://github.com/LazarSoft/jsqrcode) of [Google's ZXing library](https://github.com/zxing/zxing).
 
 In this library, several improvements have been applied over the original port:
 
 - Lightweight: ~33.7 kB (~12 kB gzipped) minified with Google's closure compiler.
-
 - Improved binarizer which makes it more tolerant to shades and reflections on the screen.
-
 - Can be configured for better performance on colored QR codes.
-
 - Runs in a WebWorker which keeps the main / UI thread responsive.
-
 - Works on higher resolution pictures by default.
 
 The library supports scanning a continuous video stream from a web cam as well as scanning of single images.
