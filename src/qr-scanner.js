@@ -230,3 +230,4 @@ export default class QrScanner {
 }
 QrScanner.DEFAULT_CANVAS_SIZE = 400;
 QrScanner.WORKER_PATH = '/libraries/qr-scanner/qr-scanner-worker.min.js';
+/** @preserve @asset(/libraries/qr-scanner/qr-scanner-worker.min.js) */
