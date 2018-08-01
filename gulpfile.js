@@ -3,9 +3,6 @@ const sourcemaps = require('gulp-sourcemaps');
 const closureCompiler = require('google-closure-compiler').gulp();
 const concat = require('gulp-concat');
 
-
-gulp.task('default', ['build-library', 'build-worker']);
-
 gulp.task('build-library', () =>
     gulp.src(['./src/qr-scanner.js'])
         .pipe(sourcemaps.init())
@@ -54,3 +51,6 @@ gulp.task('build-worker', () =>
         .pipe(sourcemaps.write('.'))
         .pipe(gulp.dest('.'))
 );
+
+gulp.task('default', gulp.parallel('build-library', 'build-worker'));
+
