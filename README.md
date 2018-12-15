@@ -36,6 +36,7 @@ const qrScanner = new QrScanner(videoElem, result => console.log('decoded qr cod
 ```
 As an optional third parameter a specific resolution that should be worked on can be specified. The default is 400.
 
+Note: to read from a Web Cam stream, your page must be served via HTTPS.
 
 
 ### Single Image Scanning
@@ -61,15 +62,22 @@ Supported image sources are:
 [File](https://developer.mozilla.org/en-US/docs/Web/API/File) / [Blob](https://developer.mozilla.org/en-US/docs/Web/API/Blob)
 
 
-
+### Color Inverted Mode
+The scanner by default scans for dark QR codes on a bright background. You can change this behavior to scan for bright QR codes on dark background or for both at the same time:
+```js
+qrScanner.setInversionMode(inversionMode);
+```
+Where `inversionMode` can be `original`, `invert` or `both`.
+The default for web cam scanning is `original` and for single image scanning `both`.
 
 ### Color Correction
 Change the weights for red, green and blue in the grayscale computation to improve contrast for QR codes of a
 specific color:
 
 ```js
-qrScanner.setGrayscaleWeights(red, green, blue)
+qrScanner.setGrayscaleWeights(red, green, blue);
 ```
+Where `red`, `green` and `blue` must sum up to 256.
 
 ## Build the project
 The project is prebuild in qr-scanner.min.js in combination with qr-scanner-worker.min.js. Building yourself is only neccessary if you want to change the code in

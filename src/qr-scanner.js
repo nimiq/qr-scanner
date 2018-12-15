@@ -72,6 +72,9 @@ export default class QrScanner {
         if (this._active) {
             return Promise.resolve();
         }
+        if (window.location.protocol !== 'https:') {
+            console.warn('The camera stream is only readable if the page is transferred via https.');
+        }
         this._active = true;
         clearTimeout(this._offTimeout);
         let facingMode = 'environment';
@@ -116,11 +119,21 @@ export default class QrScanner {
         });
     }
 
+    setInversionMode(inversionMode) {
+        this._qrWorker.postMessage({
+            type: 'inversionMode',
+            data: inversionMode
+        });
+    }
+
     /* async */
     static scanImage(imageOrFileOrUrl, sourceRect=null, worker=null, canvas=null, fixedCanvasSize=false,
                      alsoTryWithoutSourceRect=false) {
         const promise = new Promise((resolve, reject) => {
-            worker = worker || new Worker(QrScanner.WORKER_PATH);
+            if (!worker) {
+                worker = new Worker(QrScanner.WORKER_PATH);
+                worker.postMessage({ type: 'inversionMode', data: 'both' }); // scan inverted color qr codes too
+            }
             let timeout, onMessage, onError;
             onMessage = event => {
                 if (event.data.type !== 'qrResult') {
@@ -135,15 +148,16 @@ export default class QrScanner {
                     reject('QR code not found.');
                 }
             };
-            onError = () => {
+            onError = (e) => {
                 worker.removeEventListener('message', onMessage);
                 worker.removeEventListener('error', onError);
                 clearTimeout(timeout);
-                reject('Worker error.');
+                var errorMessage = !e ? 'Unknown Error' : (e.message || e);
+                reject('Scanner error: ' + errorMessage);
             };
             worker.addEventListener('message', onMessage);
             worker.addEventListener('error', onError);
-            timeout = setTimeout(onError, 3000);
+            timeout = setTimeout(() => onError('timeout'), 3000);
             QrScanner._loadImage(imageOrFileOrUrl).then(image => {
                 const imageData = QrScanner._getImageData(image, sourceRect, canvas, fixedCanvasSize);
                 worker.postMessage({

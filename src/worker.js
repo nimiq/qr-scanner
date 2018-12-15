@@ -12,6 +12,9 @@ self.onmessage = event => {
         case 'grayscaleWeights':
             setGrayscaleWeights(data);
             break;
+        case 'inversionMode':
+            setInversionMode(data);
+            break;
     }
 };
 
@@ -34,6 +37,13 @@ function setGrayscaleWeights(data) {
     if (data.red + data.green + data.blue !== 256) 
         throw new Error('Weights have to sum up to 256');
     qrcode.grayscaleWeights = data;
+}
+
+function setInversionMode(inversionMode) {
+    if (inversionMode !== 'original' && inversionMode !== 'invert' && inversionMode !== 'both') {
+        throw new Error('Invalid inversion mode');
+    }
+    qrcode.inversionMode = inversionMode;
 }
 
 function sendDebugImage(debugImage) {

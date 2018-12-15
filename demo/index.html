@@ -26,8 +26,14 @@
     <canvas id="debug-canvas"></canvas>
 </div>
 <div>
+    <select id="inversion-mode-select">
+        <option value="original">Scan original (dark QR code on bright background)</option>
+        <option value="invert">Scan with inverted colors (bright QR code on dark background)</option>
+        <option value="both">Scan both</option>
+    </select>
+    <br>
     <input type="checkbox" id="debug-checkbox">
-    <span>Show debug image</span>
+    <label for="debug-checkbox">Show debug image</label>
 </div>
 <b>Detected QR code: </b>
 <span id="cam-qr-result">None</span>
@@ -55,12 +61,14 @@
         label.highlightTimeout = setTimeout(() => label.style.color = 'inherit', 100);
     }
 
-
     // ####### Web Cam Scanning #######
 
     const scanner = new QrScanner(video, result => setResult(camQrResult, result));
     scanner.start();
 
+    document.getElementById('inversion-mode-select').addEventListener('change', event => {
+        scanner.setInversionMode(event.target.value);
+    });
 
     // ####### File Scanning #######
 

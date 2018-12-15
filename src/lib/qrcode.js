@@ -78,6 +78,15 @@ qrcode.decode_utf8 = function ( s )
         return s;
 }
 
+qrcode.grayscaleWeights = {
+    // weights for quick luma integer approximation (https://en.wikipedia.org/wiki/YUV#Full_swing_for_BT.601)
+    red: 77,
+    blue: 150,
+    green: 29
+};
+
+qrcode.inversionMode = 'original';
+
 qrcode.process = function(){
     var inputRgba = qrcode.imagedata.data;
     // asign the grayscale and binary image within the rgba buffer as the rgba image will not be needed anymore
@@ -90,51 +99,42 @@ qrcode.process = function(){
     var binarizerBuffer = new Uint8ClampedArray(inputRgba.buffer, offset, binarizerBufferSize);
 
     qrcode.grayscale(inputRgba, qrcode.width, qrcode.height, grayscaleImage);
-    Binarizer.binarize(grayscaleImage, qrcode.width, qrcode.height, binaryImage, binarizerBuffer);
 
-    var debugImage;
-    if(qrcode.debug)
+    var invertImage = qrcode.inversionMode === 'invert';
+    var inversionsToTry = qrcode.inversionMode === 'both' ? 2 : 1;
+    for (var i = 1; i <= inversionsToTry; ++i)
     {
-        debugImage = new ImageData(new Uint8ClampedArray(qrcode.width * qrcode.height * 4), qrcode.width, qrcode.height);
-        for (var y = 0; y < qrcode.height; y++)
+        if (invertImage) qrcode.invertGrayscale(grayscaleImage, qrcode.width, qrcode.height, grayscaleImage);
+
+        Binarizer.binarize(grayscaleImage, qrcode.width, qrcode.height, binaryImage, binarizerBuffer);
+
+        var debugImage;
+        if(qrcode.debug)
         {
-            for (var x = 0; x < qrcode.width; x++)
-            {
-                var point = (x * 4) + (y * qrcode.width * 4);
-                var pixel = /*grayscaleImage[y * qrcode.width + x];*/ binaryImage[y * qrcode.width + x]? 0 : 255;
-                debugImage.data[point] = pixel;
-                debugImage.data[point+1] = pixel;
-                debugImage.data[point+2] = pixel;
-                debugImage.data[point+3] = 255; // alpha
+            debugImage = new ImageData(new Uint8ClampedArray(qrcode.width * qrcode.height * 4), qrcode.width, qrcode.height);
+            _renderDebugImage(binaryImage, qrcode.width, qrcode.height, debugImage);
+        }
+
+        try {
+            var detector = new Detector(binaryImage);
+
+            var qrCodeMatrix = detector.detect(); // throws if no qr code was found
+
+            if (qrcode.debug) {
+                _renderDebugQrCodeMatrix(qrCodeMatrix, qrcode.width, debugImage);
             }
+            break; // we found a qr code
+        } catch(e) {
+            if (i === inversionsToTry) throw e; // tried all inversion modes
+        } finally {
+            if (qrcode.debug) {
+                sendDebugImage(debugImage);
+            }
+            invertImage = true; // try inversion
         }
     }
 
-    try {
-        var detector = new Detector(binaryImage);
-
-        var qRCodeMatrix = detector.detect(); // throws if no qr code was found
-
-        if (qrcode.debug) {
-            for (var y = 0; y < qRCodeMatrix.bits.getHeight(); y++) {
-                for (var x = 0; x < qRCodeMatrix.bits.getWidth(); x++) {
-                    var point = (x * 4 * 2) + (y * 2 * qrcode.width * 4);
-                    var isSet = qRCodeMatrix.bits.get_Renamed(x, y)
-                    debugImage.data[point] = isSet ? 0 : 255;
-                    debugImage.data[point + 1] = isSet ? 0 : 255;
-                    debugImage.data[point + 2] = 255;
-                }
-            }
-        }
-    } finally {
-        if (qrcode.debug) {
-            sendDebugImage(debugImage);
-        }
-    }
-
-    
-    
-    var reader = Decoder.decode(qRCodeMatrix.bits);
+    var reader = Decoder.decode(qrCodeMatrix.bits);
     var data = reader.getDataByte();
     var str="";
     for(var i=0;i<data.length;i++)
@@ -146,12 +146,6 @@ qrcode.process = function(){
     return qrcode.decode_utf8(str);
 }
 
-qrcode.grayscaleWeights = {
-    // weights for quick luma integer approximation (https://en.wikipedia.org/wiki/YUV#Full_swing_for_BT.601)
-    red: 77,
-    blue: 150,
-    green: 29
-};
 qrcode.grayscale = function(inputRgba, width, height, out_grayscale)
 {
     var weightRed = qrcode.grayscaleWeights.red;
@@ -170,8 +164,47 @@ qrcode.grayscale = function(inputRgba, width, height, out_grayscale)
     }
 }
 
+qrcode.invertGrayscale = function(input_grayscale, width, height, out_grayscale) {
+    for (var y = 0; y < height; y++)
+    {
+        for (var x = 0; x < width; x++)
+        {
+            var index = y*width + x;
+            out_grayscale[index] = 255 - input_grayscale[index];
+        }
+    }
+}
 
+function _renderDebugImage(grayscaleOrBinaryImage, width, height, debugImage)
+{
+    for (var y = 0; y < height; y++)
+    {
+        for (var x = 0; x < width; x++)
+        {
+            var point = (x * 4) + (y * width * 4);
+            var pixel = grayscaleOrBinaryImage[y * width + x]? 0 : 255;
+            debugImage.data[point] = pixel;
+            debugImage.data[point+1] = pixel;
+            debugImage.data[point+2] = pixel;
+            debugImage.data[point+3] = 255; // alpha
+        }
+    }
+}
 
+function _renderDebugQrCodeMatrix(qrCodeMatrix, imageWidth, debugImage)
+{
+    for (var y = 0; y < qrCodeMatrix.bits.getHeight(); y++)
+    {
+        for (var x = 0; x < qrCodeMatrix.bits.getWidth(); x++)
+        {
+            var point = (x * 4 * 2) + (y * 2 * imageWidth * 4);
+            var isSet = qrCodeMatrix.bits.get_Renamed(x, y);
+            debugImage.data[point] = isSet ? 0 : 255;
+            debugImage.data[point + 1] = isSet ? 0 : 255;
+            debugImage.data[point + 2] = 255;
+        }
+    }
+}
 
 function URShift( number,  bits)
 {
