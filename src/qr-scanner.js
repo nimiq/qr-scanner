@@ -4,6 +4,7 @@ export default class QrScanner {
         this.$canvas = document.createElement('canvas');
         this._onDecode = onDecode;
         this._active = false;
+        this._paused = false;
 
         this.$canvas.width = canvasSize;
         this.$canvas.height = canvasSize;
@@ -14,12 +15,23 @@ export default class QrScanner {
             height: canvasSize
         };
 
-        this.$video.addEventListener('canplay', () => this._updateSourceRect());
+        this.$video.addEventListener('canplay', () => {
+            this._updateSourceRect();
+            this.$video.play();
+        });
         this.$video.addEventListener('play', () => {
             this._updateSourceRect();
             this._scanFrame();
         }, false);
         this._qrWorker = new Worker(QrScanner.WORKER_PATH);
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                this.pause();
+            } else if (this._active) {
+                this.start();
+            }
+        });
     }
 
     _updateSourceRect() {
@@ -32,6 +44,7 @@ export default class QrScanner {
 
     _scanFrame() {
         if (this.$video.paused || this.$video.ended) return false;
+        // using requestAnimationFrame to avoid scanning if tab is in background
         requestAnimationFrame(() => {
             QrScanner.scanImage(this.$video, this._sourceRect, this._qrWorker, this.$canvas, true)
                 .then(this._onDecode, error => {
@@ -69,20 +82,32 @@ export default class QrScanner {
     }
 
     start() {
-        if (this._active) {
+        if (this._active && !this._paused) {
             return Promise.resolve();
         }
         if (window.location.protocol !== 'https:') {
-            console.warn('The camera stream is only readable if the page is transferred via https.');
+            console.warn('The camera stream is only accessible if the page is transferred via https.');
         }
         this._active = true;
+        this._paused = false;
+        if (document.hidden) {
+            // camera will be started as soon as tab is in foreground
+            return Promise.resolve();
+        }
         clearTimeout(this._offTimeout);
+        this._offTimeout = null;
+        if (this.$video.srcObject) {
+            // camera stream already/still set
+            this.$video.play();
+            return Promise.resolve();
+        }
+
         let facingMode = 'environment';
         return this._getCameraStream('environment', true)
             .catch(() => {
                 // we (probably) don't have an environment camera
                 facingMode = 'user';
-                return this._getCameraStream(); // throws if we can't access the camera
+                return this._getCameraStream(); // throws if camera is not accessible (e.g. due to not https)
             })
             .then(stream => {
                 this.$video.srcObject = stream;
@@ -95,15 +120,26 @@ export default class QrScanner {
     }
 
     stop() {
+        this.pause();
+        this._active = false;
+    }
+
+    pause() {
+        this._paused = true;
         if (!this._active) {
             return;
         }
-        this._active = false;
         this.$video.pause();
+        if (this._offTimeout) {
+            return;
+        }
         this._offTimeout = setTimeout(() => {
-            this.$video.srcObject.getTracks()[0].stop();
+            const track = this.$video.srcObject && this.$video.srcObject.getTracks()[0];
+            if (!track) return;
+            track.stop();
             this.$video.srcObject = null;
-        }, 3000);
+            this._offTimeout = null;
+        }, 1000);
     }
 
     _setVideoMirror(facingMode) {

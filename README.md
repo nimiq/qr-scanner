@@ -80,8 +80,8 @@ qrScanner.setGrayscaleWeights(red, green, blue);
 Where `red`, `green` and `blue` must sum up to 256.
 
 ## Build the project
-The project is prebuild in qr-scanner.min.js in combination with qr-scanner-worker.min.js. Building yourself is only neccessary if you want to change the code in
-the /src folder. Nodejs and Java are required for building.
+The project is prebuild in qr-scanner.min.js in combination with qr-scanner-worker.min.js. Building yourself is only necessary if you want to change the code in
+the /src folder. NodeJs and Java are required for building.
 
 Install required build packages:
 ```batch
@@ -90,7 +90,7 @@ npm install
 
 Building:
 ```batch
-gulp
+npm run build
 ```
 
 ## Debug Mode
