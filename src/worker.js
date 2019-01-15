@@ -15,6 +15,10 @@ self.onmessage = event => {
         case 'inversionMode':
             setInversionMode(data);
             break;
+        case 'close':
+            // close after earlier messages in the event loop finished processing
+            self.close();
+            break;
     }
 };
 

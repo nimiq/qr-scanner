@@ -15,23 +15,44 @@ export default class QrScanner {
             height: canvasSize
         };
 
-        this.$video.addEventListener('canplay', () => {
-            this._updateSourceRect();
-            this.$video.play();
-        });
-        this.$video.addEventListener('play', () => {
-            this._updateSourceRect();
-            this._scanFrame();
-        }, false);
-        this._qrWorker = new Worker(QrScanner.WORKER_PATH);
+        this._onCanPlay = this._onCanPlay.bind(this);
+        this._onPlay = this._onPlay.bind(this);
+        this._onVisibilityChange = this._onVisibilityChange.bind(this);
 
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                this.pause();
-            } else if (this._active) {
-                this.start();
-            }
+        this.$video.addEventListener('canplay', this._onCanPlay);
+        this.$video.addEventListener('play', this._onPlay);
+        document.addEventListener('visibilitychange', this._onVisibilityChange);
+
+        this._qrWorker = new Worker(QrScanner.WORKER_PATH);
+    }
+
+    destroy() {
+        this.$video.removeEventListener('canplay', this._onCanPlay);
+        this.$video.removeEventListener('play', this._onPlay);
+        document.removeEventListener('visibilitychange', this._onVisibilityChange);
+
+        this.stop();
+        this._qrWorker.postMessage({
+            type: 'close'
         });
+    }
+
+    _onCanPlay() {
+        this._updateSourceRect();
+        this.$video.play();
+    }
+
+    _onPlay() {
+        this._updateSourceRect();
+        this._scanFrame();
+    }
+
+    _onVisibilityChange() {
+        if (document.hidden) {
+            this.pause();
+        } else if (this._active) {
+            this.start();
+        }
     }
 
     _updateSourceRect() {
@@ -43,12 +64,12 @@ export default class QrScanner {
     }
 
     _scanFrame() {
-        if (this.$video.paused || this.$video.ended) return false;
+        if (!this._active || this.$video.paused || this.$video.ended) return false;
         // using requestAnimationFrame to avoid scanning if tab is in background
         requestAnimationFrame(() => {
             QrScanner.scanImage(this.$video, this._sourceRect, this._qrWorker, this.$canvas, true)
                 .then(this._onDecode, error => {
-                    if (error !== 'QR code not found.') {
+                    if (this._active && error !== 'QR code not found.') {
                         console.error(error);
                     }
                 })
@@ -139,7 +160,7 @@ export default class QrScanner {
             track.stop();
             this.$video.srcObject = null;
             this._offTimeout = null;
-        }, 1000);
+        }, 300);
     }
 
     _setVideoMirror(facingMode) {

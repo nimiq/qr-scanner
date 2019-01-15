@@ -79,6 +79,15 @@ qrScanner.setGrayscaleWeights(red, green, blue);
 ```
 Where `red`, `green` and `blue` must sum up to 256.
 
+### Clean Up
+
+You can destroy the QR scanner if you don't need it anymore:
+```js
+qrScanner.destroy();
+qrScanner = null;
+```
+This will stop the camera stream and web worker and cleans up event listeners.
+
 ## Build the project
 The project is prebuild in qr-scanner.min.js in combination with qr-scanner-worker.min.js. Building yourself is only necessary if you want to change the code in
 the /src folder. NodeJs and Java are required for building.

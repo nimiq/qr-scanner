@@ -16,10 +16,8 @@
 
 
 var qrcode = {};
-qrcode.imagedata = null;
 qrcode.width = 0;
 qrcode.height = 0;
-qrcode.qrCodeSymbol = null;
 qrcode.debug = false;
 qrcode.maxImgSize = 1024*1024;
 
@@ -28,13 +26,12 @@ qrcode.sizeOfDataLengthInfo =  [  [ 10, 9, 8, 8 ],  [ 12, 11, 16, 10 ],  [ 14, 1
 qrcode.callback = null;
 
 qrcode.decode = function(imageData) {
-    qrcode.imagedata = imageData;
     qrcode.width = imageData.width;
     qrcode.height = imageData.height;
-    qrcode.result = qrcode.process();
+    const result = qrcode.process(imageData);
     if(qrcode.callback!=null)
-        qrcode.callback(qrcode.result);
-    return qrcode.result;
+        qrcode.callback(result);
+    return result;
 }
 
 qrcode.isUrl = function(s)
@@ -87,8 +84,8 @@ qrcode.grayscaleWeights = {
 
 qrcode.inversionMode = 'original';
 
-qrcode.process = function(){
-    var inputRgba = qrcode.imagedata.data;
+qrcode.process = function(imageData){
+    var inputRgba = imageData.data;
     // asign the grayscale and binary image within the rgba buffer as the rgba image will not be needed anymore
     var offset = 0;
     var grayscaleImage = new Uint8ClampedArray(inputRgba.buffer, offset, qrcode.width * qrcode.height);
