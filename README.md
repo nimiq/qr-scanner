@@ -12,25 +12,52 @@ In this library, several improvements have been applied over the original port:
 
 The library supports scanning a continuous video stream from a web cam as well as scanning of single images.
 
+The development of this library is sponsored by [nimiq](https://www.nimiq.com), the world's first browser based blockchain.
+
+[<img src="https://ucb689f1ef4767d4abfb0925e185.previews.dropboxusercontent.com/p/thumb/AAVEuJzxQiFQdRZzaAqyBe7DbR9bX8SSncfAYCBCf4p5ryvIoabV0kBBDE2QQU1xqiZNQsl3JH4mm6K5hOY77dLpx5gsTU5FMsCEYqJiXb-FZg68EjOgMWR5OW0ux2AbUuGqQHebrYg0jwUbaeZt9R8IAKWMIBF99TSdAXTwakC0rnk6KamIGaqbVio80xvAcY1vOeZctnNnjW4nYhUIjYyCsDPhgEbPhBcrVVLJhqoygm9CUgFbXBcDLAdmgLKQSTjeDyR553GV-lqLm0b1Hxw9/p.png?size_mode=5" alt="nimiq.com" width="250">](https://nimiq.com)
+
+
 ## Demo
 See https://nimiq.github.io/qr-scanner/demo/
+
+## Setup
+
+The QR Scanner consists of two files.
+
+`qr-scanner.min.js` is the main API as an es6 module and can be imported as follows:
+```js
+import QrScanner from 'path/to/qr-scanner.min.js';
+```
+This requires the importing script to also be an es6 module or a module script tag, e.g.:
+```html
+<script type="module">
+    import QrScanner from 'path/to/qr-scanner.min.js';
+    // do something with QrScanner
+</script>
+```
+
+`qr-scanner-worker.min.js` is a plain Javascript file for the separate worker thread and needs to be copied over to your project. You should then point `QrScanner.WORKER_PATH` to where you put that file:
+```js
+QrScanner.WORKER_PATH = 'path/to/qr-scanner-worker.min.js';
+```
+
+If you're using webpack to bundle your project, the file loader might be interesting for you, to automatically copy the worker into your build:
+```js
+import QrScannerWorkerPath from '!!file-loader!./node_modules/qr-scanner/qr-scanner-worker.min.js';
+QrScannerLib.WORKER_PATH = QrScannerWorkerPath;
+```
 
 ## Usage
 
 ### Web Cam Scanning
 
-#### 1. Import the library:
-```
-<script src="qr-scanner.min.js"></script>
-```
-
-#### 2. Create HTML
+#### 1. Create HTML
 Create a `<video>` element where the web cam video stream should get rendered: 
 ```html
 <video></video>
 ```
 
-#### 3. Create a QrScanner Instance
+#### 2. Create a QrScanner Instance
 ```js
 const qrScanner = new QrScanner(videoElem, result => console.log('decoded qr code:', result));
 ```
@@ -41,12 +68,6 @@ Note: to read from a Web Cam stream, your page must be served via HTTPS.
 
 ### Single Image Scanning
 
-#### 1. Import the library:
-```
-<script src="qr-scanner.min.js"></script>
-```
-
-#### 2. Scan your image
 ```js
 QrScanner.scanImage(image)
     .then(result => console.log(result))
