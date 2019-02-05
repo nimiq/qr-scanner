@@ -22,6 +22,9 @@
 </style>
 <h1>Scan from WebCam:</h1>
 <div>
+    <b>Device has camera: </b>
+    <span id="cam-has-camera"></span>
+    <br>
     <video muted playsinline id="qr-video"></video>
     <canvas id="debug-canvas"></canvas>
 </div>
@@ -50,6 +53,7 @@
     const debugCheckbox = document.getElementById('debug-checkbox');
     const debugCanvas = document.getElementById('debug-canvas');
     const debugCanvasContext = debugCanvas.getContext('2d');
+    const camHasCamera = document.getElementById('cam-has-camera');
     const camQrResult = document.getElementById('cam-qr-result');
     const fileSelector = document.getElementById('file-selector');
     const fileQrResult = document.getElementById('file-qr-result');
@@ -62,6 +66,8 @@
     }
 
     // ####### Web Cam Scanning #######
+
+    QrScanner.hasCamera().then(hasCamera => camHasCamera.textContent = hasCamera);
 
     const scanner = new QrScanner(video, result => setResult(camQrResult, result));
     scanner.start();

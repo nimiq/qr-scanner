@@ -1,4 +1,14 @@
 export default class QrScanner {
+    /* async */
+    static hasCamera() {
+        // note that enumerateDevices can always be called and does not prompt the user for permission. However, device
+        // labels are only readable if served via https and an active media stream exists or permanent permission is
+        // given. That doesn't matter for us though as we don't require labels.
+        return navigator.mediaDevices.enumerateDevices()
+            .then(devices => devices.some(device => device.kind === 'videoinput'))
+            .catch(() => false);
+    }
+
     constructor(video, onDecode, canvasSize = QrScanner.DEFAULT_CANVAS_SIZE) {
         this.$video = video;
         this.$canvas = document.createElement('canvas');
