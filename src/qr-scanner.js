@@ -102,6 +102,7 @@ export default class QrScanner {
         }).catch(() => this._getMatchingCameraStream(constraintsToTry));
     }
 
+    /* async */
     start() {
         if (this._active && !this._paused) {
             return Promise.resolve();

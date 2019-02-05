@@ -4,6 +4,7 @@
   "description": "A javascript QR scanner library",
   "main": "qr-scanner.min.js",
   "module": "src/qr-scanner.js",
+  "types": "types/qr-scanner.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "gulp"
