@@ -1,10 +1,20 @@
 {
   "name": "qr-scanner",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "description": "A javascript QR scanner library",
   "main": "qr-scanner.min.js",
+  "browser": "qr-scanner.min.js",
   "module": "src/qr-scanner.js",
   "types": "types/qr-scanner.d.ts",
+  "files": [
+    "LICENSE",
+    "qr-scanner.min.js",
+    "qr-scanner.min.js.map",
+    "qr-scanner-worker.min.js",
+    "qr-scanner-worker.min.js.map",
+    "src/qr-scanner.js",
+    "types/qr-scanner.d.ts"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "gulp"
@@ -21,7 +31,7 @@
     "javascript",
     "web"
   ],
-  "author": "Nimiq",
+  "author": "Nimiq (https://nimiq.com)",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/nimiq/qr-scanner/issues"

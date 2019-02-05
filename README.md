@@ -20,13 +20,26 @@ The development of this library is sponsored by [nimiq](https://www.nimiq.com), 
 ## Demo
 See https://nimiq.github.io/qr-scanner/demo/
 
+## Installation
+
+To install via npm:
+```bash
+npm install --safe qr-scanner
+```
+To install via yarn:
+```bash
+yarn add qr-scanner
+```
+Or simply copy `qr-scanner.min.js` and `qr-scanner-worker.min.js` to your project.
+
 ## Setup
 
 The QR Scanner consists of two files.
 
 `qr-scanner.min.js` is the main API as an es6 module and can be imported as follows:
 ```js
-import QrScanner from 'path/to/qr-scanner.min.js';
+import QrScanner from 'path/to/qr-scanner.min.js'; // if using plain es6 import
+import QrScanner from 'qr-scanner'; // if installed via package and bundling with webpack or rollup
 ```
 This requires the importing script to also be an es6 module or a module script tag, e.g.:
 ```html
