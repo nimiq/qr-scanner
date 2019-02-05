@@ -37,6 +37,131 @@ export default class QrScanner {
         });
     }
 
+    /* async */
+    start() {
+        if (this._active && !this._paused) {
+            return Promise.resolve();
+        }
+        if (window.location.protocol !== 'https:') {
+            // warn but try starting the camera anyways
+            console.warn('The camera stream is only accessible if the page is transferred via https.');
+        }
+        this._active = true;
+        this._paused = false;
+        if (document.hidden) {
+            // camera will be started as soon as tab is in foreground
+            return Promise.resolve();
+        }
+        clearTimeout(this._offTimeout);
+        this._offTimeout = null;
+        if (this.$video.srcObject) {
+            // camera stream already/still set
+            this.$video.play();
+            return Promise.resolve();
+        }
+
+        let facingMode = 'environment';
+        return this._getCameraStream('environment', true)
+            .catch(() => {
+                // we (probably) don't have an environment camera
+                facingMode = 'user';
+                return this._getCameraStream(); // throws if camera is not accessible (e.g. due to not https)
+            })
+            .then(stream => {
+                this.$video.srcObject = stream;
+                this._setVideoMirror(facingMode);
+            })
+            .catch(e => {
+                this._active = false;
+                throw e;
+            });
+    }
+
+    stop() {
+        this.pause();
+        this._active = false;
+    }
+
+    pause() {
+        this._paused = true;
+        if (!this._active) {
+            return;
+        }
+        this.$video.pause();
+        if (this._offTimeout) {
+            return;
+        }
+        this._offTimeout = setTimeout(() => {
+            const track = this.$video.srcObject && this.$video.srcObject.getTracks()[0];
+            if (!track) return;
+            track.stop();
+            this.$video.srcObject = null;
+            this._offTimeout = null;
+        }, 300);
+    }
+
+    /* async */
+    static scanImage(imageOrFileOrUrl, sourceRect=null, worker=null, canvas=null, fixedCanvasSize=false,
+                     alsoTryWithoutSourceRect=false) {
+        const promise = new Promise((resolve, reject) => {
+            if (!worker) {
+                worker = new Worker(QrScanner.WORKER_PATH);
+                worker.postMessage({ type: 'inversionMode', data: 'both' }); // scan inverted color qr codes too
+            }
+            let timeout, onMessage, onError;
+            onMessage = event => {
+                if (event.data.type !== 'qrResult') {
+                    return;
+                }
+                worker.removeEventListener('message', onMessage);
+                worker.removeEventListener('error', onError);
+                clearTimeout(timeout);
+                if (event.data.data !== null) {
+                    resolve(event.data.data);
+                } else {
+                    reject('QR code not found.');
+                }
+            };
+            onError = (e) => {
+                worker.removeEventListener('message', onMessage);
+                worker.removeEventListener('error', onError);
+                clearTimeout(timeout);
+                var errorMessage = !e ? 'Unknown Error' : (e.message || e);
+                reject('Scanner error: ' + errorMessage);
+            };
+            worker.addEventListener('message', onMessage);
+            worker.addEventListener('error', onError);
+            timeout = setTimeout(() => onError('timeout'), 3000);
+            QrScanner._loadImage(imageOrFileOrUrl).then(image => {
+                const imageData = QrScanner._getImageData(image, sourceRect, canvas, fixedCanvasSize);
+                worker.postMessage({
+                    type: 'decode',
+                    data: imageData
+                }, [imageData.data.buffer]);
+            }).catch(reject);
+        });
+
+        if (sourceRect && alsoTryWithoutSourceRect) {
+            return promise.catch(() => QrScanner.scanImage(imageOrFileOrUrl, null, worker, canvas, fixedCanvasSize));
+        } else {
+            return promise;
+        }
+    }
+
+    setGrayscaleWeights(red, green, blue) {
+        this._qrWorker.postMessage({
+            type: 'grayscaleWeights',
+            data: { red, green, blue }
+        });
+    }
+
+    setInversionMode(inversionMode) {
+        this._qrWorker.postMessage({
+            type: 'inversionMode',
+            data: inversionMode
+        });
+    }
+
     _onCanPlay() {
         this._updateSourceRect();
         this.$video.play();
@@ -102,134 +227,10 @@ export default class QrScanner {
         }).catch(() => this._getMatchingCameraStream(constraintsToTry));
     }
 
-    /* async */
-    start() {
-        if (this._active && !this._paused) {
-            return Promise.resolve();
-        }
-        if (window.location.protocol !== 'https:') {
-            console.warn('The camera stream is only accessible if the page is transferred via https.');
-        }
-        this._active = true;
-        this._paused = false;
-        if (document.hidden) {
-            // camera will be started as soon as tab is in foreground
-            return Promise.resolve();
-        }
-        clearTimeout(this._offTimeout);
-        this._offTimeout = null;
-        if (this.$video.srcObject) {
-            // camera stream already/still set
-            this.$video.play();
-            return Promise.resolve();
-        }
-
-        let facingMode = 'environment';
-        return this._getCameraStream('environment', true)
-            .catch(() => {
-                // we (probably) don't have an environment camera
-                facingMode = 'user';
-                return this._getCameraStream(); // throws if camera is not accessible (e.g. due to not https)
-            })
-            .then(stream => {
-                this.$video.srcObject = stream;
-                this._setVideoMirror(facingMode);
-            })
-            .catch(e => {
-                this._active = false;
-                throw e;
-            });
-    }
-
-    stop() {
-        this.pause();
-        this._active = false;
-    }
-
-    pause() {
-        this._paused = true;
-        if (!this._active) {
-            return;
-        }
-        this.$video.pause();
-        if (this._offTimeout) {
-            return;
-        }
-        this._offTimeout = setTimeout(() => {
-            const track = this.$video.srcObject && this.$video.srcObject.getTracks()[0];
-            if (!track) return;
-            track.stop();
-            this.$video.srcObject = null;
-            this._offTimeout = null;
-        }, 300);
-    }
-
     _setVideoMirror(facingMode) {
         // in user facing mode mirror the video to make it easier for the user to position the QR code
         const scaleFactor = facingMode==='user'? -1 : 1;
         this.$video.style.transform = 'scaleX(' + scaleFactor + ')';
-    }
-
-    setGrayscaleWeights(red, green, blue) {
-        this._qrWorker.postMessage({
-            type: 'grayscaleWeights',
-            data: { red, green, blue }
-        });
-    }
-
-    setInversionMode(inversionMode) {
-        this._qrWorker.postMessage({
-            type: 'inversionMode',
-            data: inversionMode
-        });
-    }
-
-    /* async */
-    static scanImage(imageOrFileOrUrl, sourceRect=null, worker=null, canvas=null, fixedCanvasSize=false,
-                     alsoTryWithoutSourceRect=false) {
-        const promise = new Promise((resolve, reject) => {
-            if (!worker) {
-                worker = new Worker(QrScanner.WORKER_PATH);
-                worker.postMessage({ type: 'inversionMode', data: 'both' }); // scan inverted color qr codes too
-            }
-            let timeout, onMessage, onError;
-            onMessage = event => {
-                if (event.data.type !== 'qrResult') {
-                    return;
-                }
-                worker.removeEventListener('message', onMessage);
-                worker.removeEventListener('error', onError);
-                clearTimeout(timeout);
-                if (event.data.data !== null) {
-                    resolve(event.data.data);
-                } else {
-                    reject('QR code not found.');
-                }
-            };
-            onError = (e) => {
-                worker.removeEventListener('message', onMessage);
-                worker.removeEventListener('error', onError);
-                clearTimeout(timeout);
-                var errorMessage = !e ? 'Unknown Error' : (e.message || e);
-                reject('Scanner error: ' + errorMessage);
-            };
-            worker.addEventListener('message', onMessage);
-            worker.addEventListener('error', onError);
-            timeout = setTimeout(() => onError('timeout'), 3000);
-            QrScanner._loadImage(imageOrFileOrUrl).then(image => {
-                const imageData = QrScanner._getImageData(image, sourceRect, canvas, fixedCanvasSize);
-                worker.postMessage({
-                    type: 'decode',
-                    data: imageData
-                }, [imageData.data.buffer]);
-            }).catch(reject);
-        });
-
-        if (sourceRect && alsoTryWithoutSourceRect) {
-            return promise.catch(() => QrScanner.scanImage(imageOrFileOrUrl, null, worker, canvas, fixedCanvasSize));
-        } else {
-            return promise;
-        }
     }
 
     /* async */
