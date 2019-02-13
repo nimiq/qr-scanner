@@ -73,7 +73,7 @@
 
     QrScanner.hasCamera().then(hasCamera => camHasCamera.textContent = hasCamera);
 
-    const scanner = new QrScanner(video, result => setResult(camQrResult, result));
+    const scanner = new QrScanner(video, result => setResult(camQrResult, result), error => setResult(camQrResult, error || 'No QR code found.'));
     scanner.start();
 
     document.getElementById('inversion-mode-select').addEventListener('change', event => {

@@ -9,10 +9,11 @@ export default class QrScanner {
             .catch(() => false);
     }
 
-    constructor(video, onDecode, canvasSize = QrScanner.DEFAULT_CANVAS_SIZE) {
+    constructor(video, onDecode, onDecodeError, canvasSize = QrScanner.DEFAULT_CANVAS_SIZE) {
         this.$video = video;
         this.$canvas = document.createElement('canvas');
         this._onDecode = onDecode;
+        this._onDecodeError = onDecodeError;
         this._active = false;
         this._paused = false;
 
@@ -226,11 +227,7 @@ export default class QrScanner {
                 return;
             }
             QrScanner.scanImage(this.$video, this._sourceRect, this._qrWorker, this.$canvas, true)
-                .then(this._onDecode, error => {
-                    if (this._active && error !== 'QR code not found.') {
-                        console.error(error);
-                    }
-                })
+                .then(this._onDecode, this._onDecodeError)
                 .then(() => this._scanFrame());
         });
     }

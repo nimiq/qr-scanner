@@ -105,7 +105,7 @@ Create a `<video>` element where the web cam video stream should get rendered:
 
 #### 2. Create a QrScanner Instance
 ```js
-const qrScanner = new QrScanner(videoElem, result => console.log('decoded qr code:', result));
+const qrScanner = new QrScanner(videoElem, result => console.log('decoded qr code:', result), error => console.log(error || 'No QR code found.'));
 ```
 As an optional third parameter a specific resolution that should be worked on can be specified. The default is 400.
 
