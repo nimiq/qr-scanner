@@ -16,7 +16,7 @@ declare class QrScanner {
     pause(): void;
     setGrayscaleWeights(red: number, green: number, blue: number): void;
     setInversionMode(inverionMode: QrScanner.InversionMode): void;
-    scanImage(
+    static scanImage(
         imageOrFileOrUrl: HTMLCanvasElement | HTMLVideoElement | ImageBitmap | HTMLImageElement | File | URL | String,
         sourceRect?: QrScanner.SourceRect | null,
         worker?: Worker | null,
