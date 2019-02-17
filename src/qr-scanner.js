@@ -158,10 +158,10 @@ export default class QrScanner {
         }
     }
 
-    setGrayscaleWeights(red, green, blue) {
+    setGrayscaleWeights(red, green, blue, useIntegerApproximation = true) {
         this._qrWorker.postMessage({
             type: 'grayscaleWeights',
-            data: { red, green, blue }
+            data: { red, green, blue, useIntegerApproximation }
         });
     }
 

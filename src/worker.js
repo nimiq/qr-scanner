@@ -1,11 +1,19 @@
+import jsQR from '../node_modules/jsqr-es6/dist/jsQR.js';
+
+let inversionAttempts = 'dontInvert';
+let grayscaleWeights = {
+    // weights for quick luma integer approximation (https://en.wikipedia.org/wiki/YUV#Full_swing_for_BT.601)
+    red: 77,
+    green: 150,
+    blue: 29,
+    useIntegerApproximation: true,
+};
+
 self.onmessage = event => {
-    const type = event.data.type;
-    const data = event.data.data;
+    const type = event['data']['type'];
+    const data = event['data']['data'];
 
     switch (type) {
-        case 'setDebug':
-            qrcode.debug = data;
-            break;
         case 'decode':
             decode(data);
             break;
@@ -23,36 +31,40 @@ self.onmessage = event => {
 };
 
 function decode(data) {
-    let result = null;
-    try {
-        result = qrcode.decode(data);
-    } catch (e) {
-        if (!e.message.startsWith('QR Error')) 
-            throw e; // some unexpected error
-    } finally {
-        self.postMessage({
-            type: 'qrResult',
-            data: result
-        });
-    }
+    const rgbaData = data['data'];
+    const width = data['width'];
+    const height = data['height'];
+    const result = jsQR(rgbaData, width, height, {
+        inversionAttempts: inversionAttempts,
+        greyScaleWeights: grayscaleWeights,
+    });
+    self.postMessage({
+        type: 'qrResult',
+        data: result? result.data : null,
+    });
 }
 
 function setGrayscaleWeights(data) {
-    if (data.red + data.green + data.blue !== 256) 
-        throw new Error('Weights have to sum up to 256');
-    qrcode.grayscaleWeights = data;
+    // update grayscaleWeights in a closure compiler compatible fashion
+    grayscaleWeights.red = data['red'];
+    grayscaleWeights.green = data['green'];
+    grayscaleWeights.blue = data['blue'];
+    grayscaleWeights.useIntegerApproximation = data['useIntegerApproximation'];
 }
 
 function setInversionMode(inversionMode) {
-    if (inversionMode !== 'original' && inversionMode !== 'invert' && inversionMode !== 'both') {
-        throw new Error('Invalid inversion mode');
+    switch (inversionMode) {
+        case 'original':
+            inversionAttempts = 'dontInvert';
+            break;
+        case 'invert':
+            // TODO mode 'onlyInvert' is currently broken in jsQR. Enable when fixed.
+            inversionAttempts = 'attemptBoth';
+            break;
+        case 'both':
+            inversionAttempts = 'attemptBoth';
+            break;
+        default:
+            throw new Error('Invalid inversion mode');
     }
-    qrcode.inversionMode = inversionMode;
-}
-
-function sendDebugImage(debugImage) {
-    self.postMessage({
-        type: 'debugImage',
-        data: debugImage
-    }, [debugImage.data.buffer]);
 }

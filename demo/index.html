@@ -26,7 +26,6 @@
     <span id="cam-has-camera"></span>
     <br>
     <video muted playsinline id="qr-video"></video>
-    <canvas id="debug-canvas"></canvas>
 </div>
 <div>
     <select id="inversion-mode-select">
@@ -35,11 +34,12 @@
         <option value="both">Scan both</option>
     </select>
     <br>
-    <input type="checkbox" id="debug-checkbox">
-    <label for="debug-checkbox">Show debug image</label>
 </div>
 <b>Detected QR code: </b>
 <span id="cam-qr-result">None</span>
+<br>
+<b>Last detected at: </b>
+<span id="cam-qr-result-timestamp"></span>
 <hr>
 
 <h1>Scan from File:</h1>
@@ -52,16 +52,15 @@
     QrScanner.WORKER_PATH = '../qr-scanner-worker.min.js';
 
     const video = document.getElementById('qr-video');
-    const debugCheckbox = document.getElementById('debug-checkbox');
-    const debugCanvas = document.getElementById('debug-canvas');
-    const debugCanvasContext = debugCanvas.getContext('2d');
     const camHasCamera = document.getElementById('cam-has-camera');
     const camQrResult = document.getElementById('cam-qr-result');
+    const camQrResultTimestamp = document.getElementById('cam-qr-result-timestamp');
     const fileSelector = document.getElementById('file-selector');
     const fileQrResult = document.getElementById('file-qr-result');
 
     function setResult(label, result) {
         label.textContent = result;
+        camQrResultTimestamp.textContent = new Date().toString();
         label.style.color = 'teal';
         clearTimeout(label.highlightTimeout);
         label.highlightTimeout = setTimeout(() => label.style.color = 'inherit', 100);
@@ -90,37 +89,6 @@
             .catch(e => setResult(fileQrResult, e || 'No QR code found.'));
     });
 
-
-    // ####### debug mode related code #######
-
-    debugCheckbox.addEventListener('change', () => setDebugMode(debugCheckbox.checked));
-
-    function setDebugMode(isDebug) {
-        const worker = scanner._qrWorker;
-        worker.postMessage({
-            type: 'setDebug',
-            data: isDebug
-        });
-        if (isDebug) {
-            debugCanvas.style.display = 'block';
-            worker.addEventListener('message', handleDebugImage);
-        } else {
-            debugCanvas.style.display = 'none';
-            worker.removeEventListener('message', handleDebugImage);
-        }
-    }
-
-    function handleDebugImage(event) {
-        const type = event.data.type;
-        if (type === 'debugImage') {
-            const imageData = event.data.data;
-            if (debugCanvas.width !== imageData.width || debugCanvas.height !== imageData.height) {
-                debugCanvas.width = imageData.width;
-                debugCanvas.height = imageData.height;
-            }
-            debugCanvasContext.putImageData(imageData, 0, 0);
-        }
-    }
 </script>
 </body>
 </html>

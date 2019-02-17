@@ -1,20 +1,24 @@
 # QR Scanner
 
-Javascript QR Code Scanner based on [Lazar Lazslo's javascript port](https://github.com/LazarSoft/jsqrcode) of [Google's ZXing library](https://github.com/zxing/zxing).
+Javascript QR Code Scanner based on [Cosmo Wolfe's javascript port](https://github.com/cozmo/jsqr) of [Google's ZXing library](https://github.com/zxing/zxing).
 
 In this library, several improvements have been applied over the original port:
 
+<!--
 - Lightweight: ~33.7 kB (~12 kB gzipped) minified with Google's closure compiler.
-- Improved binarizer which makes it more tolerant to shades and reflections on the screen.
-- Can be configured for better performance on colored QR codes.
+-->
+- Improved performance and reduced memory footprint.
 - Runs in a WebWorker which keeps the main / UI thread responsive.
-- Works on higher resolution pictures by default.
+- Smaller file size.
+- Can be configured for better performance on colored QR codes.
+
+According to [our benchmarking](https://github.com/danimoh/qr-scanner-benchmark) this project's scanner engine's detection rate is about 2-3 times (and up to 8 times) as high as the one of the most popular javascript QR scanner library [LazarSoft/jsqrcode](https://github.com/LazarSoft/jsqrcode).
 
 The library supports scanning a continuous video stream from a web cam as well as scanning of single images.
 
-The development of this library is sponsored by [nimiq](https://www.nimiq.com), the world's first browser based blockchain.
+The development of this library is sponsored by [nimiq](https://www.nimiq.com), world's first browser based blockchain.
 
-[<img src="https://ucb689f1ef4767d4abfb0925e185.previews.dropboxusercontent.com/p/thumb/AAVEuJzxQiFQdRZzaAqyBe7DbR9bX8SSncfAYCBCf4p5ryvIoabV0kBBDE2QQU1xqiZNQsl3JH4mm6K5hOY77dLpx5gsTU5FMsCEYqJiXb-FZg68EjOgMWR5OW0ux2AbUuGqQHebrYg0jwUbaeZt9R8IAKWMIBF99TSdAXTwakC0rnk6KamIGaqbVio80xvAcY1vOeZctnNnjW4nYhUIjYyCsDPhgEbPhBcrVVLJhqoygm9CUgFbXBcDLAdmgLKQSTjeDyR553GV-lqLm0b1Hxw9/p.png?size_mode=5" alt="nimiq.com" width="250">](https://nimiq.com)
+[<img src="https://nimiq.github.io/qr-scanner/nimiq_logo_rgb_horizontal.svg" alt="nimiq.com" width="250">](https://nimiq.com)
 
 
 ## Demo
@@ -24,7 +28,7 @@ See https://nimiq.github.io/qr-scanner/demo/
 
 To install via npm:
 ```bash
-npm install --safe qr-scanner
+npm install --save qr-scanner
 ```
 To install via yarn:
 ```bash
@@ -54,7 +58,7 @@ This requires the importing script to also be an es6 module or a module script t
 QrScanner.WORKER_PATH = 'path/to/qr-scanner-worker.min.js';
 ```
 
-If you're using webpack to bundle your project, the file loader might be interesting for you, to automatically copy the worker into your build:
+If you're using webpack to bundle your project, the file loader might be interesting for you to automatically copy the worker into your build:
 ```js
 import QrScannerWorkerPath from '!!file-loader!./node_modules/qr-scanner/qr-scanner-worker.min.js';
 QrScannerLib.WORKER_PATH = QrScannerWorkerPath;
@@ -109,9 +113,9 @@ Change the weights for red, green and blue in the grayscale computation to impro
 specific color:
 
 ```js
-qrScanner.setGrayscaleWeights(red, green, blue);
+qrScanner.setGrayscaleWeights(red, green, blue, useIntegerApproximation = true);
 ```
-Where `red`, `green` and `blue` must sum up to 256.
+Where `red`, `green` and `blue` should sum up to 256 if `useIntegerApproximation === true` and `1` otherwise. By default, [these](https://en.wikipedia.org/wiki/YUV#Full_swing_for_BT.601) values are used.
 
 ### Clean Up
 
@@ -124,7 +128,7 @@ This will stop the camera stream and web worker and cleans up event listeners.
 
 ## Build the project
 The project is prebuild in qr-scanner.min.js in combination with qr-scanner-worker.min.js. Building yourself is only necessary if you want to change the code in
-the /src folder. NodeJs and Java are required for building.
+the /src folder. NodeJs is required for building.
 
 Install required build packages:
 ```batch
@@ -136,21 +140,3 @@ Building:
 npm run build
 ```
 
-## Debug Mode
-
-To enable debug mode:
-```js
-qrScanner._qrWorker.postMessage({
-    type: 'setDebug',
-    data: true
-});
-```
-
-To handle the debug image:
-```js
-qrScanner._qrWorker.addEventListener('message', event => {
-  if (event.data.type === 'debugImage') {
-      canvasContext.putImageData(event.data.data, 0, 0);
-  }
-});
-```

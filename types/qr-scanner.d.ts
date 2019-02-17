@@ -14,8 +14,8 @@ declare class QrScanner {
     start(): Promise<void>;
     stop(): void;
     pause(): void;
-    setGrayscaleWeights(red: number, green: number, blue: number): void;
-    setInversionMode(inverionMode: QrScanner.InversionMode): void;
+    setGrayscaleWeights(red: number, green: number, blue: number, useIntegerApproximation?: boolean): void;
+    setInversionMode(inversionMode: QrScanner.InversionMode): void;
     static scanImage(
         imageOrFileOrUrl: HTMLCanvasElement | HTMLVideoElement | ImageBitmap | HTMLImageElement | File | URL | String,
         sourceRect?: QrScanner.SourceRect | null,
