@@ -1,6 +1,6 @@
 {
   "name": "qr-scanner",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A javascript QR scanner library",
   "main": "qr-scanner.min.js",
   "browser": "qr-scanner.min.js",
@@ -42,7 +42,7 @@
   "devDependencies": {
     "@ampproject/rollup-plugin-closure-compiler": "^0.8.5",
     "google-closure-compiler": "^20171112.0.0",
-    "jsqr-es6": "^1.2.0-1",
+    "jsqr-es6": "^1.2.0-2",
     "rollup": "^1.1.2",
     "rollup-plugin-sourcemaps": "^0.4.2"
   }

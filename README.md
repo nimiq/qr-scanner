@@ -4,15 +4,12 @@ Javascript QR Code Scanner based on [Cosmo Wolfe's javascript port](https://gith
 
 In this library, several improvements have been applied over the original port:
 
-<!--
-- Lightweight: ~33.7 kB (~12 kB gzipped) minified with Google's closure compiler.
--->
+- Lightweight: ~48.7 kB (~12.4 kB gzipped) minified with Google's closure compiler.
 - Improved performance and reduced memory footprint.
 - Runs in a WebWorker which keeps the main / UI thread responsive.
-- Smaller file size.
 - Can be configured for better performance on colored QR codes.
 
-According to [our benchmarking](https://github.com/danimoh/qr-scanner-benchmark) this project's scanner engine's detection rate is about 2-3 times (and up to 8 times) as high as the one of the most popular javascript QR scanner library [LazarSoft/jsqrcode](https://github.com/LazarSoft/jsqrcode).
+According to [our benchmarking](https://github.com/danimoh/qr-scanner-benchmark) this project's scanner engine's detection rate is about 2-3 times (and up to 8 times) as high as the one of the most popular javascript QR scanner library [LazarSoft/jsqrcode](https://github.com/LazarSoft/jsqrcode). Also the other library oftentimes misreads the content of QR codes, while for this project no misreads occurred in the benchmarking.
 
 The library supports scanning a continuous video stream from a web cam as well as scanning of single images.
 
