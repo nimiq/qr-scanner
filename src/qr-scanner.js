@@ -113,9 +113,11 @@ export default class QrScanner {
     /* async */
     static scanImage(imageOrFileOrUrl, sourceRect=null, worker=null, canvas=null, fixedCanvasSize=false,
                      alsoTryWithoutSourceRect=false) {
-        const promise = new Promise((resolve, reject) => {
+        let createdNewWorker = false;
+        let promise = new Promise((resolve, reject) => {
             if (!worker) {
                 worker = new Worker(QrScanner.WORKER_PATH);
+                createdNewWorker = true;
                 worker.postMessage({ type: 'inversionMode', data: 'both' }); // scan inverted color qr codes too
             }
             let timeout, onMessage, onError;
@@ -136,7 +138,7 @@ export default class QrScanner {
                 worker.removeEventListener('message', onMessage);
                 worker.removeEventListener('error', onError);
                 clearTimeout(timeout);
-                var errorMessage = !e ? 'Unknown Error' : (e.message || e);
+                const errorMessage = !e ? 'Unknown Error' : (e.message || e);
                 reject('Scanner error: ' + errorMessage);
             };
             worker.addEventListener('message', onMessage);
@@ -148,14 +150,21 @@ export default class QrScanner {
                     type: 'decode',
                     data: imageData
                 }, [imageData.data.buffer]);
-            }).catch(reject);
+            }).catch(onError);
         });
 
         if (sourceRect && alsoTryWithoutSourceRect) {
-            return promise.catch(() => QrScanner.scanImage(imageOrFileOrUrl, null, worker, canvas, fixedCanvasSize));
-        } else {
-            return promise;
+            promise = promise.catch(() => QrScanner.scanImage(imageOrFileOrUrl, null, worker, canvas, fixedCanvasSize));
         }
+
+        promise = promise.finally(() => {
+            if (!createdNewWorker) return;
+            worker.postMessage({
+                type: 'close'
+            });
+        });
+
+        return promise;
     }
 
     setGrayscaleWeights(red, green, blue, useIntegerApproximation = true) {
@@ -243,7 +252,6 @@ export default class QrScanner {
         this.$video.style.transform = 'scaleX(' + scaleFactor + ')';
     }
 
-    /* async */
     static _getImageData(image, sourceRect=null, canvas=null, fixedCanvasSize=false) {
         canvas = canvas || document.createElement('canvas');
         const sourceRectX = sourceRect && sourceRect.x? sourceRect.x : 0;
