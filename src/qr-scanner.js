@@ -9,6 +9,23 @@ export default class QrScanner {
             .catch(() => false);
     }
 
+    /* async */
+    hasFlash() {
+      if (!('ImageCapture' in window)) {
+        return Promise.resolve(false);
+      }
+
+      const imageCapture = new ImageCapture(this._getCameraTrack());
+      return imageCapture.getPhotoCapabilities()
+        .then((result) => {
+          return result.fillLightMode.includes('flash');
+        })
+        .catch((error) => {
+          console.warn(error);
+          return false;
+        })
+    }
+
     constructor(
         video,
         onDecode,
@@ -22,6 +39,7 @@ export default class QrScanner {
         this._preferredFacingMode = preferredFacingMode;
         this._active = false;
         this._paused = false;
+        this._flashOn = false;
 
         if (typeof canvasSizeOrOnDecodeError === 'number') {
             // legacy function signature where canvas size is the third argument
@@ -55,6 +73,22 @@ export default class QrScanner {
         document.addEventListener('visibilitychange', this._onVisibilityChange);
 
         this._qrWorker = new Worker(QrScanner.WORKER_PATH);
+    }
+
+    isFlashOn() {
+      return this._flashOn;
+    }
+
+    toggleFlash() {
+      this._setFlashOn(!this._flashOn);
+    }
+
+    turnFlashOff() {
+      this._setFlashOn(false);
+    }
+
+    turnFlashOn() {
+      this._setFlashOn(true);
     }
 
     destroy() {
@@ -270,6 +304,10 @@ export default class QrScanner {
         return this._getMatchingCameraStream(constraintsToTry);
     }
 
+    _getCameraTrack() {
+      return this.$video.srcObject.getVideoTracks()[0];
+    }
+
     _getMatchingCameraStream(constraintsToTry) {
         if (!navigator.mediaDevices || constraintsToTry.length === 0) {
             return Promise.reject('Camera not found.');
@@ -277,6 +315,13 @@ export default class QrScanner {
         return navigator.mediaDevices.getUserMedia({
             video: constraintsToTry.shift()
         }).catch(() => this._getMatchingCameraStream(constraintsToTry));
+    }
+
+    _setFlashOn(on) {
+      this._flashOn = on;
+      this._getCameraTrack().applyConstraints({
+        advanced: [{ torch: this._flashOn }],
+      });
     }
 
     _setVideoMirror(facingMode) {

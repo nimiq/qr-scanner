@@ -19,13 +19,22 @@
     div {
         margin-bottom: 16px;
     }
+    #flash-toggle {
+        display: none;
+    }
 </style>
 <h1>Scan from WebCam:</h1>
 <div>
     <b>Device has camera: </b>
     <span id="cam-has-camera"></span>
     <br>
+    <b>Device has flash: </b>
+    <span id="cam-has-flash"></span>
+    <br>
     <video id="qr-video"></video>
+</div>
+<div>
+    <button id="flash-toggle">📸 Flash: <span id="flash-state"></span></button>
 </div>
 <div>
     <select id="inversion-mode-select">
@@ -56,6 +65,9 @@
 
     const video = document.getElementById('qr-video');
     const camHasCamera = document.getElementById('cam-has-camera');
+    const camHasFlash = document.getElementById('cam-has-flash');
+    const flashToggle = document.getElementById('flash-toggle');
+    const flashState = document.getElementById('flash-state');
     const camQrResult = document.getElementById('cam-qr-result');
     const camQrResultTimestamp = document.getElementById('cam-qr-result-timestamp');
     const fileSelector = document.getElementById('file-selector');
@@ -77,7 +89,20 @@
         camQrResult.textContent = error;
         camQrResult.style.color = 'inherit';
     });
-    scanner.start();
+    scanner.start()
+        .then(() => {
+            scanner.hasFlash().then(hasFlash => {
+                camHasFlash.textContent = hasFlash;
+                if (hasFlash) {
+                    flashState.textContent = scanner.isFlashOn();
+                    flashToggle.style.display = 'inline-block';
+                    flashToggle.addEventListener('click', () => {
+                        scanner.toggleFlash();
+                        flashState.textContent = scanner.isFlashOn();
+                    });
+                }
+            });
+        });
 
     document.getElementById('inversion-mode-select').addEventListener('change', event => {
         scanner.setInversionMode(event.target.value);

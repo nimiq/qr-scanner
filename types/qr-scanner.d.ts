@@ -19,6 +19,11 @@ declare class QrScanner {
     /** @deprecated */
     constructor(video: HTMLVideoElement, onDecode: (result: string) => void, canvasSize?: number);
 
+    hasFlash(): Promise<boolean>;
+    isFlashOn(): boolean;
+    toggleFlash(): void;
+    turnFlashOff(): void;
+    turnFlashOn(): void;
     destroy(): void;
     start(): Promise<void>;
     stop(): void;
