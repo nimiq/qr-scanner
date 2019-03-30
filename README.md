@@ -111,6 +111,10 @@ As an optional third parameter an error handler to be invoked on decoding errors
 
 As an optional fourth parameter a specific resolution that should be worked on can be specified. The default is 400.
 
+As an optional fifth parameter a preference for the camera to use can be specified. Allowed values are `'environment'` and `'user'`. The default is `'environment'`.
+
+To use the default value for an optional parameter, omit it or use `undefined`.
+
 #### 3. Start scanning
 ```js
 qrScanner.start();

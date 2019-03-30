@@ -13,11 +13,13 @@ export default class QrScanner {
         video,
         onDecode,
         canvasSizeOrOnDecodeError = this._onDecodeError.bind(this),
-        canvasSize = QrScanner.DEFAULT_CANVAS_SIZE
+        canvasSize = QrScanner.DEFAULT_CANVAS_SIZE,
+        preferredFacingMode = 'environment'
     ) {
         this.$video = video;
         this.$canvas = document.createElement('canvas');
         this._onDecode = onDecode;
+        this._preferredFacingMode = preferredFacingMode;
         this._active = false;
         this._paused = false;
 
@@ -88,19 +90,17 @@ export default class QrScanner {
             return Promise.resolve();
         }
 
-        let facingMode = 'environment';
-        return this._getCameraStream('environment', true)
+        let facingMode = this._preferredFacingMode;
+        return this._getCameraStream(facingMode, true)
             .catch(() => {
-                // we (probably) don't have an environment camera
-                facingMode = 'user';
+                // We (probably) don't have a camera of the requested facing mode
+                facingMode = facingMode === 'environment' ? 'user' : 'environment';
                 return this._getCameraStream(); // throws if camera is not accessible (e.g. due to not https)
             })
             .then(stream => {
-                if (this._isUserFacing(stream)) {
-                    // Safari incorrectly returns `user` facing cameras even if `environment` was specified as an exact
-                    // constraint. Thus check whether the stream is user facing and set the facingMode accordingly.
-                    facingMode = 'user';
-                }
+                // Try to determine the facing mode from the stream, otherwise use our guess. Note that the guess is not
+                // always accurate as Safari returns cameras of different facing mode, even for exact constraints.
+                facingMode = this._getFacingMode(stream) || facingMode;
                 this.$video.srcObject = stream;
                 this.$video.play();
                 this._setVideoMirror(facingMode);
@@ -285,11 +285,15 @@ export default class QrScanner {
         this.$video.style.transform = 'scaleX(' + scaleFactor + ')';
     }
 
-    _isUserFacing(videoStream) {
+    _getFacingMode(videoStream) {
         const videoTrack = videoStream.getVideoTracks()[0];
-        if (!videoTrack) return false; // assume false
+        if (!videoTrack) return null; // unknown
         // inspired by https://github.com/JodusNodus/react-qr-reader/blob/master/src/getDeviceId.js#L13
-        return /front|user|face/i.test(videoTrack.label);
+        return /rear|back|environment/i.test(videoTrack.label)
+            ? 'environment'
+            : /front|user|face/i.test(videoTrack.label)
+                ? 'user'
+                : null; // unknown
     }
 
     static _getImageData(image, sourceRect=null, canvas=null, fixedCanvasSize=false) {

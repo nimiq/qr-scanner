@@ -14,6 +14,7 @@ declare class QrScanner {
         onDecode: (result: string) => void,
         onDecodeError?: (error: string) => void,
         canvasSize?: number,
+        preferredFacingMode?: 'environment' | 'user',
     );
     /** @deprecated */
     constructor(video: HTMLVideoElement, onDecode: (result: string) => void, canvasSize?: number);
