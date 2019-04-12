@@ -8,7 +8,7 @@ declare class QrScanner {
 
     static hasCamera(): Promise<boolean>;
 
-    constructor(video: HTMLVideoElement, onDecode: Function, canvasSize?: number);
+    constructor(video: HTMLVideoElement, onDecode: (result: string) => void, canvasSize?: number);
 
     destroy(): void;
     start(): Promise<void>;
