@@ -79,6 +79,7 @@ export default class QrScanner {
             })
             .then(stream => {
                 this.$video.srcObject = stream;
+                this.$video.play();
                 this._setVideoMirror(facingMode);
             })
             .catch(e => {
