@@ -77,6 +77,13 @@ const qrScanner = new QrScanner(videoElem, result => console.log('decoded qr cod
 ```
 As an optional third parameter a specific resolution that should be worked on can be specified. The default is 400.
 
+#### 3. Start scanning
+```js
+qrScanner.start();
+```
+
+Call it when you're ready to scan, for example on a button click or directly on page load.
+It will prompt the user for permission to use a camera.
 Note: to read from a Web Cam stream, your page must be served via HTTPS.
 
 
@@ -136,4 +143,3 @@ Building:
 ```batch
 npm run build
 ```
-
