@@ -71,6 +71,9 @@ Create a `<video>` element where the web cam video stream should get rendered:
 <video></video>
 ```
 
+Note: for iOS the video tag must have the attributes `muted` and `playsinline` (See [video polices for iOS](https://webkit.org/blog/6784/new-video-policies-for-ios/))
+
+
 #### 2. Create a QrScanner Instance
 ```js
 const qrScanner = new QrScanner(videoElem, result => console.log('decoded qr code:', result));
