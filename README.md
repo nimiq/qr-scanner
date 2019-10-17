@@ -55,11 +55,17 @@ This requires the importing script to also be an es6 module or a module script t
 QrScanner.WORKER_PATH = 'path/to/qr-scanner-worker.min.js';
 ```
 
+### Webpack
+
 If you're using webpack to bundle your project, the file loader might be interesting for you to automatically copy the worker into your build:
 ```js
-import QrScannerWorkerPath from '!!file-loader!./node_modules/qr-scanner/qr-scanner-worker.min.js';
-QrScannerLib.WORKER_PATH = QrScannerWorkerPath;
+import workerAsString from '!!raw-loader!qr-scanner/qr-scanner-worker.min';
+
+const workerUrl = window.URL.createObjectURL(new Blob([workerAsString]))
+QrScanner.WORKER_PATH = workerUrl;
 ```
+
+PS: Don't forget to install raw loader with command `npm install --save-dev raw-loader`.
 
 ## Usage
 
