@@ -9,12 +9,13 @@ export default class QrScanner {
             .catch(() => false);
     }
 
-    constructor(video, onDecode, canvasSize = QrScanner.DEFAULT_CANVAS_SIZE) {
+    constructor(video, onDecode, canvasSize = QrScanner.DEFAULT_CANVAS_SIZE, defaultFacingMode = 'environment') {
         this.$video = video;
         this.$canvas = document.createElement('canvas');
         this._onDecode = onDecode;
         this._active = false;
         this._paused = false;
+        this._defaultFacingMode = defaultFacingMode;
 
         this.$canvas.width = canvasSize;
         this.$canvas.height = canvasSize;
@@ -70,21 +71,36 @@ export default class QrScanner {
             return Promise.resolve();
         }
 
-        let facingMode = 'environment';
-        return this._getCameraStream('environment', true)
-            .catch(() => {
-                // we (probably) don't have an environment camera
-                facingMode = 'user';
-                return this._getCameraStream(); // throws if camera is not accessible (e.g. due to not https)
-            })
-            .then(stream => {
-                this.$video.srcObject = stream;
-                this._setVideoMirror(facingMode);
-            })
-            .catch(e => {
-                this._active = false;
-                throw e;
+        const uniqueFacingModes = {};
+        const facingModes = [];
+        [this._defaultFacingMode, 'environment', 'user', 'left', 'right'].forEach((facingMode) => {
+            if (!uniqueFacingModes[facingMode]) {
+                facingModes.push(facingMode);
+                uniqueFacingModes[facingMode] = true;
+            }
+        });
+
+        let p = Promise.resolve();
+
+        facingModes.forEach((facingMode) => {
+            p = p.then(() => {
+                return this._getCameraStream(facingMode, true).catch(() => {
+                    return;
+                }).then((stream) => {
+                    this.$video.srcObject = stream;
+                    this._setVideoMirror(facingMode);
+                }).catch(() => {
+                    return;
+                });
             });
+        });
+
+        p = p.catch(e => {
+            this._active = false;
+            throw e;
+        });
+
+        return p;
     }
 
     stop() {

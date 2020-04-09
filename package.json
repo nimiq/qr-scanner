@@ -40,7 +40,7 @@
   },
   "homepage": "https://github.com/nimiq/qr-scanner#readme",
   "devDependencies": {
-    "@ampproject/rollup-plugin-closure-compiler": "^0.8.5",
+    "@ampproject/rollup-plugin-closure-compiler": "^0.24.0",
     "google-closure-compiler": "^20171112.0.0",
     "jsqr-es6": "^1.2.0-2",
     "rollup": "^1.1.2",
