@@ -25,10 +25,13 @@ export default class QrScanner {
             height: canvasSize
         };
 
+        this._initCSS();
+
         this._onCanPlay = this._onCanPlay.bind(this);
         this._onPlay = this._onPlay.bind(this);
         this._onVisibilityChange = this._onVisibilityChange.bind(this);
 
+        this.$video.classList.add('qr-scanner');
         this.$video.addEventListener('canplay', this._onCanPlay);
         this.$video.addEventListener('play', this._onPlay);
         document.addEventListener('visibilitychange', this._onVisibilityChange);
@@ -248,8 +251,19 @@ export default class QrScanner {
 
     _setVideoMirror(facingMode) {
         // in user facing mode mirror the video to make it easier for the user to position the QR code
-        const scaleFactor = facingMode==='user'? -1 : 1;
-        this.$video.style.transform = 'scaleX(' + scaleFactor + ')';
+        this.$video.classList.toggle('qr-scanner--mirror', facingMode==='user');
+    }
+
+    _initCSS(){
+        const stylesheet = Array.from(document.styleSheets).shift()||this._createStylesheet()
+        stylesheet.addRule('.qr-scanner', 'transform: scaleX(1);', 0)
+        stylesheet.addRule('.qr-scanner--mirror', 'transform: scaleX(-1);', 1)
+    }
+
+    _createStylesheet(){
+        const sheet = document.createElement('style');
+        document.head.appendChild(sheet);
+        return sheet;
     }
 
     static _getImageData(image, sourceRect=null, canvas=null, fixedCanvasSize=false) {
