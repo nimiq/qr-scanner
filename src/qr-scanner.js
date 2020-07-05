@@ -25,11 +25,9 @@ export default class QrScanner {
             height: canvasSize
         };
 
-        this._onCanPlay = this._onCanPlay.bind(this);
         this._onPlay = this._onPlay.bind(this);
         this._onVisibilityChange = this._onVisibilityChange.bind(this);
 
-        this.$video.addEventListener('canplay', this._onCanPlay);
         this.$video.addEventListener('play', this._onPlay);
         document.addEventListener('visibilitychange', this._onVisibilityChange);
 
@@ -37,7 +35,6 @@ export default class QrScanner {
     }
 
     destroy() {
-        this.$video.removeEventListener('canplay', this._onCanPlay);
         this.$video.removeEventListener('play', this._onPlay);
         document.removeEventListener('visibilitychange', this._onVisibilityChange);
 
@@ -180,11 +177,6 @@ export default class QrScanner {
             type: 'inversionMode',
             data: inversionMode
         });
-    }
-
-    _onCanPlay() {
-        this._updateSourceRect();
-        this.$video.play();
     }
 
     _onPlay() {
