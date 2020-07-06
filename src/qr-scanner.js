@@ -28,6 +28,13 @@ export default class QrScanner {
         this._onPlay = this._onPlay.bind(this);
         this._onVisibilityChange = this._onVisibilityChange.bind(this);
 
+        // Allow inline playback on iPhone instead of requiring full screen playback,
+        // see https://webkit.org/blog/6784/new-video-policies-for-ios/
+        this.$video.playsInline = true;
+        // Allow play() on iPhone without requiring a user gesture. Should not really be needed as camera stream
+        // includes no audio, but just to be safe.
+        this.$video.muted = true;
+        this.$video.disablePictureInPicture = true;
         this.$video.addEventListener('play', this._onPlay);
         document.addEventListener('visibilitychange', this._onVisibilityChange);
 
