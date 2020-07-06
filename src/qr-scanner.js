@@ -112,9 +112,10 @@ export default class QrScanner {
             return;
         }
         this._offTimeout = setTimeout(() => {
-            const track = this.$video.srcObject && this.$video.srcObject.getTracks()[0];
-            if (!track) return;
-            track.stop();
+            const tracks = this.$video.srcObject ? this.$video.srcObject.getTracks() : [];
+            for (const track of tracks) {
+                track.stop();
+            }
             this.$video.srcObject = null;
             this._offTimeout = null;
         }, 300);
