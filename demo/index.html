@@ -40,6 +40,9 @@
 <br>
 <b>Last detected at: </b>
 <span id="cam-qr-result-timestamp"></span>
+<br>
+<button id="start-button">Start</button>
+<button id="stop-button">Stop</button>
 <hr>
 
 <h1>Scan from File:</h1>
@@ -75,6 +78,14 @@
 
     document.getElementById('inversion-mode-select').addEventListener('change', event => {
         scanner.setInversionMode(event.target.value);
+    });
+
+    document.getElementById('start-button').addEventListener('click', () => {
+        scanner.start();
+    });
+
+    document.getElementById('stop-button').addEventListener('click', () => {
+        scanner.stop();
     });
 
     // ####### File Scanning #######
