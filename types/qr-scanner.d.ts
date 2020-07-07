@@ -4,10 +4,18 @@
 
 declare class QrScanner {
     static DEFAULT_CANVAS_SIZE: number;
+    static NO_QR_CODE_FOUND: string;
     static WORKER_PATH: string;
 
     static hasCamera(): Promise<boolean>;
 
+    constructor(
+        video: HTMLVideoElement,
+        onDecode: (result: string) => void,
+        onDecodeError?: (error: string) => void,
+        canvasSize?: number,
+    );
+    /** @deprecated */
     constructor(video: HTMLVideoElement, onDecode: (result: string) => void, canvasSize?: number);
 
     destroy(): void;

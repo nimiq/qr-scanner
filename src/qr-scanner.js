@@ -9,13 +9,26 @@ export default class QrScanner {
             .catch(() => false);
     }
 
-    constructor(video, onDecode, onDecodeError, canvasSize = QrScanner.DEFAULT_CANVAS_SIZE) {
+    constructor(
+        video,
+        onDecode,
+        canvasSizeOrOnDecodeError = this._onDecodeError.bind(this),
+        canvasSize = QrScanner.DEFAULT_CANVAS_SIZE
+    ) {
         this.$video = video;
         this.$canvas = document.createElement('canvas');
         this._onDecode = onDecode;
-        this._onDecodeError = onDecodeError;
         this._active = false;
         this._paused = false;
+
+        if (typeof canvasSizeOrOnDecodeError === 'number') {
+            // legacy function signature where canvas size is the third argument
+            canvasSize = canvasSizeOrOnDecodeError;
+            console.warn('You\'re using a deprecated version of the QrScanner constructor which will be removed in '
+                + 'the future');
+        } else {
+            this._onDecodeError = canvasSizeOrOnDecodeError;
+        }
 
         this.$canvas.width = canvasSize;
         this.$canvas.height = canvasSize;
@@ -143,7 +156,7 @@ export default class QrScanner {
                 if (event.data.data !== null) {
                     resolve(event.data.data);
                 } else {
-                    reject('QR code not found.');
+                    reject(QrScanner.NO_QR_CODE_FOUND);
                 }
             };
             onError = (e) => {
@@ -227,9 +240,18 @@ export default class QrScanner {
                 return;
             }
             QrScanner.scanImage(this.$video, this._sourceRect, this._qrWorker, this.$canvas, true)
-                .then(this._onDecode, this._onDecodeError)
+                .then(this._onDecode, (error) => {
+                    if (!this._active) return;
+                    this._onDecodeError(error);
+                })
                 .then(() => this._scanFrame());
         });
+    }
+
+    _onDecodeError(error) {
+        // default error handler; can be overwritten in the constructor
+        if (error === QrScanner.NO_QR_CODE_FOUND) return;
+        console.log(error);
     }
 
     _getCameraStream(facingMode, exact = false) {
@@ -338,4 +360,5 @@ export default class QrScanner {
     }
 }
 QrScanner.DEFAULT_CANVAS_SIZE = 400;
+QrScanner.NO_QR_CODE_FOUND = 'No QR code found';
 QrScanner.WORKER_PATH = 'qr-scanner-worker.min.js';
