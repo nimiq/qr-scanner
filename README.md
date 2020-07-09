@@ -159,6 +159,18 @@ qrScanner.setGrayscaleWeights(red, green, blue, useIntegerApproximation = true);
 ```
 Where `red`, `green` and `blue` should sum up to 256 if `useIntegerApproximation === true` and `1` otherwise. By default, [these](https://en.wikipedia.org/wiki/YUV#Full_swing_for_BT.601) values are used.
 
+### Flashlight support
+
+On supported browsers, you can check whether the used camera has a flash and turn it on or off. Note that `qrScanner.start()` has to be called and awaited first.
+
+```js
+qrScanner.hasFlash(); // check whether the browser and used camera support turning the flash on; async.
+qrScanner.isFlashOn(); // check whether the flash is on
+qrScanner.turnFlashOn(); // turn the flash on if supported; async
+qrScanner.turnFlashOff(); // turn the flash off if supported; async
+qrScanner.toggleFlash(); // toggle the flash if supported; async.
+```
+
 ### Clean Up
 
 You can destroy the QR scanner if you don't need it anymore:

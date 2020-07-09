@@ -34,7 +34,7 @@
     <video id="qr-video"></video>
 </div>
 <div>
-    <button id="flash-toggle">📸 Flash: <span id="flash-state"></span></button>
+    <button id="flash-toggle">📸 Flash: <span id="flash-state">off</span></button>
 </div>
 <div>
     <select id="inversion-mode-select">
@@ -89,20 +89,17 @@
         camQrResult.textContent = error;
         camQrResult.style.color = 'inherit';
     });
-    scanner.start()
-        .then(() => {
-            scanner.hasFlash().then(hasFlash => {
-                camHasFlash.textContent = hasFlash;
-                if (hasFlash) {
-                    flashState.textContent = scanner.isFlashOn();
-                    flashToggle.style.display = 'inline-block';
-                    flashToggle.addEventListener('click', () => {
-                        scanner.toggleFlash();
-                        flashState.textContent = scanner.isFlashOn();
-                    });
-                }
-            });
+    scanner.start().then(() => {
+        scanner.hasFlash().then(hasFlash => {
+            camHasFlash.textContent = hasFlash;
+            if (hasFlash) {
+                flashToggle.style.display = 'inline-block';
+                flashToggle.addEventListener('click', () => {
+                    scanner.toggleFlash().then(() => flashState.textContent = scanner.isFlashOn() ? 'on' : 'off');
+                });
+            }
         });
+    });
 
     document.getElementById('inversion-mode-select').addEventListener('change', event => {
         scanner.setInversionMode(event.target.value);

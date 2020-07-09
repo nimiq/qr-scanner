@@ -21,9 +21,9 @@ declare class QrScanner {
 
     hasFlash(): Promise<boolean>;
     isFlashOn(): boolean;
-    toggleFlash(): void;
-    turnFlashOff(): void;
-    turnFlashOn(): void;
+    toggleFlash(): Promise<void>;
+    turnFlashOff(): Promise<void>;
+    turnFlashOn(): Promise<void>;
     destroy(): void;
     start(): Promise<void>;
     stop(): void;

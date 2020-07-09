@@ -9,23 +9,6 @@ export default class QrScanner {
             .catch(() => false);
     }
 
-    /* async */
-    hasFlash() {
-      if (!('ImageCapture' in window)) {
-        return Promise.resolve(false);
-      }
-
-      const imageCapture = new ImageCapture(this._getCameraTrack());
-      return imageCapture.getPhotoCapabilities()
-        .then((result) => {
-          return result.fillLightMode.includes('flash');
-        })
-        .catch((error) => {
-          console.warn(error);
-          return false;
-        })
-    }
-
     constructor(
         video,
         onDecode,
@@ -75,20 +58,45 @@ export default class QrScanner {
         this._qrWorker = new Worker(QrScanner.WORKER_PATH);
     }
 
+    /* async */
+    hasFlash() {
+        if (!('ImageCapture' in window)) {
+            return Promise.resolve(false);
+        }
+
+        const track = this.$video.srcObject ? this.$video.srcObject.getVideoTracks()[0] : null;
+        if (!track) {
+            return Promise.reject('Camera not started or not available');
+        }
+
+        const imageCapture = new ImageCapture(track);
+        return imageCapture.getPhotoCapabilities()
+            .then((result) => {
+                return result.fillLightMode.includes('flash');
+            })
+            .catch((error) => {
+                console.warn(error);
+                return false;
+            });
+    }
+
     isFlashOn() {
       return this._flashOn;
     }
 
+    /* async */
     toggleFlash() {
-      this._setFlashOn(!this._flashOn);
+      return this._setFlash(!this._flashOn);
     }
 
+    /* async */
     turnFlashOff() {
-      this._setFlashOn(false);
+      return this._setFlash(false);
     }
 
+    /* async */
     turnFlashOn() {
-      this._setFlashOn(true);
+      return this._setFlash(true);
     }
 
     destroy() {
@@ -162,7 +170,7 @@ export default class QrScanner {
         this._offTimeout = setTimeout(() => {
             const tracks = this.$video.srcObject ? this.$video.srcObject.getTracks() : [];
             for (const track of tracks) {
-                track.stop();
+                track.stop(); //  note that this will also automatically turn the flashlight off
             }
             this.$video.srcObject = null;
             this._offTimeout = null;
@@ -304,10 +312,6 @@ export default class QrScanner {
         return this._getMatchingCameraStream(constraintsToTry);
     }
 
-    _getCameraTrack() {
-      return this.$video.srcObject.getVideoTracks()[0];
-    }
-
     _getMatchingCameraStream(constraintsToTry) {
         if (!navigator.mediaDevices || constraintsToTry.length === 0) {
             return Promise.reject('Camera not found.');
@@ -317,11 +321,15 @@ export default class QrScanner {
         }).catch(() => this._getMatchingCameraStream(constraintsToTry));
     }
 
-    _setFlashOn(on) {
-      this._flashOn = on;
-      this._getCameraTrack().applyConstraints({
-        advanced: [{ torch: this._flashOn }],
-      });
+    /* async */
+    _setFlash(on) {
+        return this.hasFlash().then((hasFlash) => {
+            if (!hasFlash) return Promise.reject('No flash available');
+            // Note that the video track is guaranteed to exist at this point
+            return this.$video.srcObject.getVideoTracks()[0].applyConstraints({
+                advanced: [{ torch: on }],
+            });
+        }).then(() => this._flashOn = on);
     }
 
     _setVideoMirror(facingMode) {
