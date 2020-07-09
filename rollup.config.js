@@ -4,12 +4,18 @@ import closureCompiler from '@ampproject/rollup-plugin-closure-compiler';
 export default [{
     // library
     input: 'src/qr-scanner.js',
-    output: {
+    output: [{
         file: 'qr-scanner.min.js',
         format: 'esm',
         interop: false,
         sourcemap: true,
-    },
+    }, {
+        file: 'qr-scanner.umd.min.js',
+        format: 'umd',
+        name: 'QrScanner',
+        interop: false,
+        sourcemap: true,
+    }],
     plugins: [
         closureCompiler({
             language_in: 'ECMASCRIPT6',

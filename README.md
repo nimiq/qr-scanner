@@ -37,10 +37,12 @@ Or simply copy `qr-scanner.min.js` and `qr-scanner-worker.min.js` to your projec
 
 The QR Scanner consists of two files.
 
+### Setting up the API
+
 `qr-scanner.min.js` is the main API as an es6 module and can be imported as follows:
 ```js
 import QrScanner from 'path/to/qr-scanner.min.js'; // if using plain es6 import
-import QrScanner from 'qr-scanner'; // if installed via package and bundling with a bundler like webpack or rollup
+import QrScanner from 'qr-scanner'; // if installed via package and bundling with a module bundler like webpack or rollup
 ```
 This requires the importing script to also be an es6 module or a module script tag, e.g.:
 ```html
@@ -50,16 +52,41 @@ This requires the importing script to also be an es6 module or a module script t
 </script>
 ```
 
+If your project is not based on es6 modules you can
+- use a [dynamic import](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import#Dynamic_Imports) to import the es6 module:
+```js
+import('path/to/qr-scanner.min.js').then((module) => {
+    const QrScanner = module.default;
+    // do something with QrScanner
+});
+```
+- use `qr-scanner.umd.min.js` for direct usage as non-module script
+```html
+<script src="path/to/qr-scanner.umd.min.js"></script>
+<script>
+    // do something with QrScanner
+</script>
+```
+- bundle `qr-scanner.umd.min.js` directly with your non-module code with tools like [gulp](https://gulpjs.com/) or [grunt](https://gruntjs.com/).
+- bundle the lib with `require` based bundlers like [browserify](https://browserify.org/):
+```js
+const QrScanner = require('qr-scanner'); // if installed via package
+const QrScanner = require('path/to/qr-scanner.umd.min.js'); // if not installed via package
+// do something with QrScanner
+```
+
+### Setting up the worker
+
 `qr-scanner-worker.min.js` is a plain Javascript file for the separate worker thread and needs to be copied over to your project. You should then point `QrScanner.WORKER_PATH` to the location where it will be hosted:
 ```js
 QrScanner.WORKER_PATH = 'path/to/qr-scanner-worker.min.js';
 ```
 
-### Webpack specific setup
+#### Webpack specific worker setup
 
 If you're using [Webpack](https://webpack.js.org/) to bundle your project, the [file-loader](https://webpack.js.org/loaders/file-loader/) or [raw-loader](https://webpack.js.org/loaders/raw-loader/) might be interesting for you for handling the `qr-scanner-worker.min.js` dependency. Which one to choose depends on your use case.
 
-#### Using file-loader
+##### Using file-loader
 
 The `file-loader` automatically copies the worker script into your build and provides the path where it will be located in the build. At runtime, the worker will then be lazy-loaded from there when needed. Due to its ability to lazy-load the worker, using the `file-loader` is the preferred approach if you do not expect the QR scanner to be used every time a user uses your app or if the QR scanner is not launched right after loading the app.
 
@@ -76,7 +103,7 @@ QrScannerLib.WORKER_PATH = QrScannerWorkerPath;
 
 Note that the path to the worker file has to be set relatively to the source file where you use it. For example, if your source file using the `QrScanner` sits in `/src/components`, the correct import would be `import QrScannerWorkerPath from '!!file-loader!../../node_modules/qr-scanner/qr-scanner-worker.min.js';`.
 
-#### Using raw-loader
+##### Using raw-loader
 
 The `raw-loader` bundles the worker as string into your build, thus no separate file gets generated in your build output. While this simplifies the build output and avoids an additional network request, it increases your bundle size and removes the ability to lazy-load the worker file only when needed.
 
