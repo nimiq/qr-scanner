@@ -58,8 +58,7 @@ function setInversionMode(inversionMode) {
             inversionAttempts = 'dontInvert';
             break;
         case 'invert':
-            // TODO mode 'onlyInvert' is currently broken in jsQR. Enable when fixed.
-            inversionAttempts = 'attemptBoth';
+            inversionAttempts = 'onlyInvert';
             break;
         case 'both':
             inversionAttempts = 'attemptBoth';
