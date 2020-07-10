@@ -4,7 +4,8 @@ Javascript QR Code Scanner based on [Cosmo Wolfe's javascript port](https://gith
 
 In this library, several improvements have been applied over the original port:
 
-- Lightweight: ~48.7 kB (~12.4 kB gzipped) minified with Google's closure compiler.
+- Web cam scanning support out of the box
+- Lightweight: ~50.5 kB (~13.0 kB gzipped) minified with Google's closure compiler.
 - Improved performance and reduced memory footprint.
 - Runs in a WebWorker which keeps the main / UI thread responsive.
 - Can be configured for better performance on colored QR codes.
@@ -151,6 +152,12 @@ Call it when you're ready to scan, for example on a button click or directly on 
 It will prompt the user for permission to use a camera.
 Note: to read from a Web Cam stream, your page must be served via HTTPS.
 
+#### 4. Stop scanning
+```js
+qrScanner.stop();
+```
+
+If you want, you can stop scanning anytime and resume it by calling `start()` again.
 
 ### Single Image Scanning
 
@@ -166,8 +173,26 @@ Supported image sources are:
 [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement),
 [ImageBitmap](https://developer.mozilla.org/en-US/docs/Web/API/ImageBitmap),
 [OffscreenCanvas](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas),
-[File](https://developer.mozilla.org/en-US/docs/Web/API/File) / [Blob](https://developer.mozilla.org/en-US/docs/Web/API/Blob)
+[File](https://developer.mozilla.org/en-US/docs/Web/API/File) / [Blob](https://developer.mozilla.org/en-US/docs/Web/API/Blob),
+[Data URIs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs),
+URLs pointing to an image (if they are on the same origin or [CORS enabled](https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_enabled_image))
 
+As an optional second parameter a region defined by `x`, `y`, `width` and `height` can be specified to which the search for a QR code should be restricted. By default, the region spans the whole image.
+
+As an optional third parameter a manually created QR scanner worker instance to be reused can be specified. This improves performance if you're scanning a lot of images. A worker can be manually created via `new Worker(QrScanner.WORKER_PATH)`. By default, no worker is reused for single image scanning.
+
+As an optional fourth parameter a manually created canvas to be reused can be specified. This improves performance if you're scanning a lot of images. A canvas can be manually created via a `<canvas>` tag in your markup or `document.createElement('canvas')`. By default, no canvas is reused for single image scanning.
+
+As an optional fifth parameter you can request a provided canvas for reuse to not be resized, irrespective of the source image or source region dimensions. Note that the canvas and source region should have the same aspect ratio to avoid that the image to scan gets distorted which could make detecting QR codes impossible. By default, the canvas size is adapted to the source region dimensions for single image scanning.
+
+To use the default value for an optional parameter, omit it or use `undefined`.
+
+### Checking for Camera availability
+
+This library provides a utility method for checking whether the device has a camera. This can be useful for determining whether to offer the QR web cam scanning functionality to a user.
+```js
+QrScanner.hasCamera(); // async
+```
 
 ### Color Inverted Mode
 The scanner by default scans for dark QR codes on a bright background. You can change this behavior to scan for bright QR codes on dark background or for both at the same time:
