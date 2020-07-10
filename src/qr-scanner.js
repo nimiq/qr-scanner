@@ -211,7 +211,7 @@ export default class QrScanner {
             };
             worker.addEventListener('message', onMessage);
             worker.addEventListener('error', onError);
-            timeout = setTimeout(() => onError('timeout'), 3000);
+            timeout = setTimeout(() => onError('timeout'), 10000);
             QrScanner._loadImage(imageOrFileOrUrl).then(image => {
                 const imageData = QrScanner._getImageData(image, sourceRect, canvas, fixedCanvasSize);
                 worker.postMessage({
