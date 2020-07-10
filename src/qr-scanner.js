@@ -367,23 +367,23 @@ export default class QrScanner {
     }
 
     /* async */
-    static _loadImage(imageOrFileOrUrl) {
-        if (imageOrFileOrUrl instanceof HTMLCanvasElement || imageOrFileOrUrl instanceof HTMLVideoElement
-            || window.ImageBitmap && imageOrFileOrUrl instanceof window.ImageBitmap
-            || window.OffscreenCanvas && imageOrFileOrUrl instanceof window.OffscreenCanvas) {
-            return Promise.resolve(imageOrFileOrUrl);
-        } else if (imageOrFileOrUrl instanceof Image) {
-            return QrScanner._awaitImageLoad(imageOrFileOrUrl).then(() => imageOrFileOrUrl);
-        } else if (imageOrFileOrUrl instanceof File || imageOrFileOrUrl instanceof URL
-            ||  typeof(imageOrFileOrUrl)==='string') {
+    static _loadImage(imageOrFileOrBlobOrUrl) {
+        if (imageOrFileOrBlobOrUrl instanceof HTMLCanvasElement || imageOrFileOrBlobOrUrl instanceof HTMLVideoElement
+            || window.ImageBitmap && imageOrFileOrBlobOrUrl instanceof window.ImageBitmap
+            || window.OffscreenCanvas && imageOrFileOrBlobOrUrl instanceof window.OffscreenCanvas) {
+            return Promise.resolve(imageOrFileOrBlobOrUrl);
+        } else if (imageOrFileOrBlobOrUrl instanceof Image) {
+            return QrScanner._awaitImageLoad(imageOrFileOrBlobOrUrl).then(() => imageOrFileOrBlobOrUrl);
+        } else if (imageOrFileOrBlobOrUrl instanceof File || imageOrFileOrBlobOrUrl instanceof Blob
+            || imageOrFileOrBlobOrUrl instanceof URL || typeof(imageOrFileOrBlobOrUrl)==='string') {
             const image = new Image();
-            if (imageOrFileOrUrl instanceof File) {
-                image.src = URL.createObjectURL(imageOrFileOrUrl);
+            if (imageOrFileOrBlobOrUrl instanceof File || imageOrFileOrBlobOrUrl instanceof Blob) {
+                image.src = URL.createObjectURL(imageOrFileOrBlobOrUrl);
             } else {
-                image.src = imageOrFileOrUrl;
+                image.src = imageOrFileOrBlobOrUrl;
             }
             return QrScanner._awaitImageLoad(image).then(() => {
-                if (imageOrFileOrUrl instanceof File) {
+                if (imageOrFileOrBlobOrUrl instanceof File || imageOrFileOrBlobOrUrl instanceof Blob) {
                     URL.revokeObjectURL(image.src);
                 }
                 return image;
