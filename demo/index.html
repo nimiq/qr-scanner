@@ -6,9 +6,6 @@
 </head>
 <body>
 <style>
-    canvas {
-        display: none;
-    }
     hr {
         margin-top: 32px;
     }
@@ -32,6 +29,11 @@
     <span id="cam-has-flash"></span>
     <br>
     <video id="qr-video"></video>
+    <br>
+    <label>
+        <input id="show-scan-region" type="checkbox">
+        Show scan region
+    </label>
 </div>
 <div>
     <button id="flash-toggle">📸 Flash: <span id="flash-state">off</span></button>
@@ -99,6 +101,16 @@
                 });
             }
         });
+    });
+
+    // for debugging
+    window.scanner = scanner;
+
+    document.getElementById('show-scan-region').addEventListener('change', (e) => {
+        const input = e.target;
+        const label = input.parentNode;
+        label.parentNode.insertBefore(scanner.$canvas, label.nextSibling);
+        scanner.$canvas.style.display = input.checked ? 'block' : 'none';
     });
 
     document.getElementById('inversion-mode-select').addEventListener('change', event => {

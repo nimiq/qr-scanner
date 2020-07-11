@@ -43,6 +43,7 @@ export default class QrScanner {
             height: canvasSize
         };
 
+        this._updateSourceRect = this._updateSourceRect.bind(this);
         this._onPlay = this._onPlay.bind(this);
         this._onVisibilityChange = this._onVisibilityChange.bind(this);
 
@@ -53,6 +54,7 @@ export default class QrScanner {
         // includes no audio, but just to be safe.
         this.$video.muted = true;
         this.$video.disablePictureInPicture = true;
+        this.$video.addEventListener('loadedmetadata', this._updateSourceRect);
         this.$video.addEventListener('play', this._onPlay);
         document.addEventListener('visibilitychange', this._onVisibilityChange);
 
@@ -101,6 +103,7 @@ export default class QrScanner {
     }
 
     destroy() {
+        this.$video.removeEventListener('loadedmetadata', this._updateSourceRect);
         this.$video.removeEventListener('play', this._onPlay);
         document.removeEventListener('visibilitychange', this._onVisibilityChange);
 
