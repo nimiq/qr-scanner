@@ -5,7 +5,8 @@ Javascript QR Code Scanner based on [Cosmo Wolfe's javascript port](https://gith
 In this library, several improvements have been applied over the original port:
 
 - Web cam scanning support out of the box
-- Lightweight: ~50.5 kB (~13.0 kB gzipped) minified with Google's closure compiler.
+- Uses the browser's native [BarcodeDetector](https://web.dev/shape-detection/) [if available](https://github.com/WICG/shape-detection-api#overview)
+- Lightweight: ~50.5 kB (~13.0 kB gzipped) minified with Google's closure compiler. If the native `BarcodeDetector` is available, only ~6.8 kB (~2.7 kB gzipped) are loaded.
 - Improved performance and reduced memory footprint.
 - Runs in a WebWorker which keeps the main / UI thread responsive.
 - Can be configured for better performance on colored QR codes.
@@ -179,7 +180,7 @@ URLs pointing to an image (if they are on the same origin or [CORS enabled](http
 
 As an optional second parameter a region defined by `x`, `y`, `width` and `height` can be specified to which the search for a QR code should be restricted. By default, the region spans the whole image.
 
-As an optional third parameter a manually created QR scanner worker instance to be reused can be specified. This improves performance if you're scanning a lot of images. A worker can be manually created via `new Worker(QrScanner.WORKER_PATH)`. By default, no worker is reused for single image scanning.
+As an optional third parameter a manually created QR scanner engine instance to be reused can be specified. This improves performance if you're scanning a lot of images. An engine can be manually created via `QrScanner.createQrEngine(QrScanner.WORKER_PATH)` (async). By default, no engine is reused for single image scanning.
 
 As an optional fourth parameter a manually created canvas to be reused can be specified. This improves performance if you're scanning a lot of images. A canvas can be manually created via a `<canvas>` tag in your markup or `document.createElement('canvas')`. By default, no canvas is reused for single image scanning.
 
