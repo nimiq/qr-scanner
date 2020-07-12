@@ -138,7 +138,7 @@ const qrScanner = new QrScanner(videoElem, result => console.log('decoded qr cod
 ```
 As an optional third parameter an error handler to be invoked on decoding errors can be specified. The default is `QrScanner._onDecodeError`.
 
-As an optional fourth parameter a specific resolution that should be worked on can be specified. The default is 400.
+As an optional fourth parameter a method can be provided that determines a region to which scanning should be restricted as a performance improvement. This region can optionally also be scaled down before performing the scan as an additional performance improvement. The region is specified as `x`, `y`, `width` and `height`; the dimensions for the downscaled region as `downScaledWidth` and `downScaledHeight`. Note that the aspect ratio between `width` and `height` and `downScaledWidth` and `downScaledHeight` should remain the same. By default, the scan region is restricted to a centered square of two thirds of the video width or height, whichever is smaller, and scaled down to a 400x400 square.
 
 As an optional fifth parameter a preference for the camera to use can be specified. Allowed values are `'environment'` and `'user'`. The default is `'environment'`.
 
@@ -178,7 +178,7 @@ Supported image sources are:
 [Data URIs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs),
 URLs pointing to an image (if they are on the same origin or [CORS enabled](https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_enabled_image))
 
-As an optional second parameter a region defined by `x`, `y`, `width` and `height` can be specified to which the search for a QR code should be restricted. By default, the region spans the whole image.
+As an optional second parameter a region defined by `x`, `y`, `width` and `height` can be specified to which the search for a QR code should be restricted. As a performance improvement this region can be scaled down before performing the scan by providing a `downScaledWidth` and `downScaledHeight`. By default, the region spans the whole image and is not scaled down.
 
 As an optional third parameter a manually created QR scanner engine instance to be reused can be specified. This improves performance if you're scanning a lot of images. An engine can be manually created via `QrScanner.createQrEngine(QrScanner.WORKER_PATH)` (async). By default, no engine is reused for single image scanning.
 

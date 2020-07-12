@@ -13,38 +13,41 @@ export default class QrScanner {
     constructor(
         video,
         onDecode,
-        canvasSizeOrOnDecodeError = this._onDecodeError.bind(this),
-        canvasSize = QrScanner.DEFAULT_CANVAS_SIZE,
+        canvasSizeOrOnDecodeError = this._onDecodeError,
+        canvasSizeOrCalculateScanRegion = this._calculateScanRegion,
         preferredFacingMode = 'environment'
     ) {
         this.$video = video;
         this.$canvas = document.createElement('canvas');
         this._onDecode = onDecode;
+        this._legacyCanvasSize = QrScanner.DEFAULT_CANVAS_SIZE;
         this._preferredFacingMode = preferredFacingMode;
         this._active = false;
         this._paused = false;
         this._flashOn = false;
 
         if (typeof canvasSizeOrOnDecodeError === 'number') {
-            // legacy function signature where canvas size is the third argument
-            canvasSize = canvasSizeOrOnDecodeError;
+            // legacy function signature where the third argument is the canvas size
+            this._legacyCanvasSize = canvasSizeOrOnDecodeError;
             console.warn('You\'re using a deprecated version of the QrScanner constructor which will be removed in '
                 + 'the future');
         } else {
             this._onDecodeError = canvasSizeOrOnDecodeError;
         }
 
-        this.$canvas.width = canvasSize;
-        this.$canvas.height = canvasSize;
-        this._sourceRect = {
-            x: 0,
-            y: 0,
-            width: canvasSize,
-            height: canvasSize
-        };
+        if (typeof canvasSizeOrCalculateScanRegion === 'number') {
+            // legacy function signature where the fourth argument is the canvas size
+            this._legacyCanvasSize = canvasSizeOrCalculateScanRegion;
+            console.warn('You\'re using a deprecated version of the QrScanner constructor which will be removed in '
+                + 'the future');
+        } else {
+            this._calculateScanRegion = canvasSizeOrCalculateScanRegion;
+        }
 
-        this._updateSourceRect = this._updateSourceRect.bind(this);
+        this._scanRegion = this._calculateScanRegion(video);
+
         this._onPlay = this._onPlay.bind(this);
+        this._onLoadedMetaData = this._onLoadedMetaData.bind(this);
         this._onVisibilityChange = this._onVisibilityChange.bind(this);
 
         // Allow inline playback on iPhone instead of requiring full screen playback,
@@ -54,8 +57,8 @@ export default class QrScanner {
         // includes no audio, but just to be safe.
         this.$video.muted = true;
         this.$video.disablePictureInPicture = true;
-        this.$video.addEventListener('loadedmetadata', this._updateSourceRect);
         this.$video.addEventListener('play', this._onPlay);
+        this.$video.addEventListener('loadedmetadata', this._onLoadedMetaData);
         document.addEventListener('visibilitychange', this._onVisibilityChange);
 
         this._qrEnginePromise = QrScanner.createQrEngine();
@@ -103,7 +106,7 @@ export default class QrScanner {
     }
 
     destroy() {
-        this.$video.removeEventListener('loadedmetadata', this._updateSourceRect);
+        this.$video.removeEventListener('loadedmetadata', this._onLoadedMetaData);
         this.$video.removeEventListener('play', this._onPlay);
         document.removeEventListener('visibilitychange', this._onVisibilityChange);
 
@@ -180,8 +183,8 @@ export default class QrScanner {
     }
 
     /* async */
-    static scanImage(imageOrFileOrUrl, sourceRect=null, qrEngine=null, canvas=null, fixedCanvasSize=false,
-                     alsoTryWithoutSourceRect=false) {
+    static scanImage(imageOrFileOrUrl, scanRegion=null, qrEngine=null, canvas=null, fixedCanvasSize=false,
+                     alsoTryWithoutScanRegion=false) {
         const gotExternalWorker = qrEngine instanceof Worker;
 
         let promise = Promise.all([
@@ -190,7 +193,7 @@ export default class QrScanner {
         ]).then(([engine, image]) => {
             qrEngine = engine;
             let canvasContext;
-            [canvas, canvasContext] = this._drawToCanvas(image, sourceRect, canvas, fixedCanvasSize);
+            [canvas, canvasContext] = this._drawToCanvas(image, scanRegion, canvas, fixedCanvasSize);
 
             if (qrEngine instanceof Worker) {
                 if (!gotExternalWorker) {
@@ -242,7 +245,7 @@ export default class QrScanner {
             }
         });
 
-        if (sourceRect && alsoTryWithoutSourceRect) {
+        if (scanRegion && alsoTryWithoutScanRegion) {
             promise = promise.catch(() => QrScanner.scanImage(imageOrFileOrUrl, null, qrEngine, canvas, fixedCanvasSize));
         }
 
@@ -280,8 +283,12 @@ export default class QrScanner {
     }
 
     _onPlay() {
-        this._updateSourceRect();
+        this._scanRegion = this._calculateScanRegion(this.$video);
         this._scanFrame();
+    }
+
+    _onLoadedMetaData() {
+        this._scanRegion = this._calculateScanRegion(this.$video);
     }
 
     _onVisibilityChange() {
@@ -292,12 +299,18 @@ export default class QrScanner {
         }
     }
 
-    _updateSourceRect() {
-        const smallestDimension = Math.min(this.$video.videoWidth, this.$video.videoHeight);
-        const sourceRectSize = Math.round(2 / 3 * smallestDimension);
-        this._sourceRect.width = this._sourceRect.height = sourceRectSize;
-        this._sourceRect.x = (this.$video.videoWidth - sourceRectSize) / 2;
-        this._sourceRect.y = (this.$video.videoHeight - sourceRectSize) / 2;
+    _calculateScanRegion(video) {
+        // Default scan region calculation. Note that this can be overwritten in the constructor.
+        const smallestDimension = Math.min(video.videoWidth, video.videoHeight);
+        const scanRegionSize = Math.round(2 / 3 * smallestDimension);
+        return {
+            x: (video.videoWidth - scanRegionSize) / 2,
+            y: (video.videoHeight - scanRegionSize) / 2,
+            width: scanRegionSize,
+            height: scanRegionSize,
+            downScaledWidth: this._legacyCanvasSize,
+            downScaledHeight: this._legacyCanvasSize,
+        };
     }
 
     _scanFrame() {
@@ -313,7 +326,7 @@ export default class QrScanner {
                 return;
             }
             this._qrEnginePromise
-                .then((qrEngine) => QrScanner.scanImage(this.$video, this._sourceRect, qrEngine, this.$canvas, true))
+                .then((qrEngine) => QrScanner.scanImage(this.$video, this._scanRegion, qrEngine, this.$canvas))
                 .then(this._onDecode, (error) => {
                     if (!this._active) return;
                     const errorMessage = error.message || error;
@@ -386,19 +399,23 @@ export default class QrScanner {
                 : null; // unknown
     }
 
-    static _drawToCanvas(image, sourceRect=null, canvas=null, fixedCanvasSize=false) {
+    static _drawToCanvas(image, scanRegion=null, canvas=null, fixedCanvasSize=false) {
         canvas = canvas || document.createElement('canvas');
-        const sourceRectX = sourceRect && sourceRect.x? sourceRect.x : 0;
-        const sourceRectY = sourceRect && sourceRect.y? sourceRect.y : 0;
-        const sourceRectWidth = sourceRect && sourceRect.width? sourceRect.width : image.width || image.videoWidth;
-        const sourceRectHeight = sourceRect && sourceRect.height? sourceRect.height : image.height || image.videoHeight;
-        if (!fixedCanvasSize && (canvas.width !== sourceRectWidth || canvas.height !== sourceRectHeight)) {
-            canvas.width = sourceRectWidth;
-            canvas.height = sourceRectHeight;
+        const scanRegionX = scanRegion && scanRegion.x? scanRegion.x : 0;
+        const scanRegionY = scanRegion && scanRegion.y? scanRegion.y : 0;
+        const scanRegionWidth = scanRegion && scanRegion.width? scanRegion.width : image.width || image.videoWidth;
+        const scanRegionHeight = scanRegion && scanRegion.height? scanRegion.height : image.height || image.videoHeight;
+        if (!fixedCanvasSize) {
+            canvas.width = scanRegion && scanRegion.downScaledWidth? scanRegion.downScaledWidth : scanRegionWidth;
+            canvas.height = scanRegion && scanRegion.downScaledHeight? scanRegion.downScaledHeight : scanRegionHeight;
         }
         const context = canvas.getContext('2d', { alpha: false });
         context.imageSmoothingEnabled = false; // gives less blurry images
-        context.drawImage(image, sourceRectX, sourceRectY, sourceRectWidth, sourceRectHeight, 0, 0, canvas.width, canvas.height);
+        context.drawImage(
+            image,
+            scanRegionX, scanRegionY, scanRegionWidth, scanRegionHeight,
+            0, 0, canvas.width, canvas.height
+        );
         return [canvas, context];
     }
 

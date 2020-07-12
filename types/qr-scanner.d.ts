@@ -13,6 +13,14 @@ declare class QrScanner {
         video: HTMLVideoElement,
         onDecode: (result: string) => void,
         onDecodeError?: (error: string) => void,
+        calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion,
+        preferredFacingMode?: 'environment' | 'user',
+    );
+    /** @deprecated */
+    constructor(
+        video: HTMLVideoElement,
+        onDecode: (result: string) => void,
+        onDecodeError?: (error: string) => void,
         canvasSize?: number,
         preferredFacingMode?: 'environment' | 'user',
     );
@@ -32,11 +40,11 @@ declare class QrScanner {
     setInversionMode(inversionMode: QrScanner.InversionMode): void;
     static scanImage(
         imageOrFileOrUrl: HTMLCanvasElement | HTMLVideoElement | ImageBitmap | HTMLImageElement | File | URL | String,
-        sourceRect?: QrScanner.SourceRect | null,
+        scanRegion?: QrScanner.ScanRegion | null,
         worker?: Worker | null,
         canvas?: HTMLCanvasElement | null,
         fixedCanvasSize?: boolean,
-        alsoTryWithoutSourceRect?: boolean
+        alsoTryWithoutScanRegion?: boolean
     ): Promise<string>;
     static createQrEnginge(workerPath?: string): Promise<Worker | BarcodeDetector>;
 }
@@ -50,11 +58,13 @@ declare class BarcodeDetector {
 
 // exported types
 declare namespace QrScanner {
-    export interface SourceRect {
+    export interface ScanRegion {
         x?: number;
         y?: number;
         width?: number;
         height?: number;
+        downScaledWidth?: number;
+        downScaledHeight?: number;
     }
 
     export type InversionMode = 'original' | 'invert' | 'both';
