@@ -58,7 +58,7 @@ export default class QrScanner {
         this.$video.addEventListener('play', this._onPlay);
         document.addEventListener('visibilitychange', this._onVisibilityChange);
 
-        this._qrEnginePromise = QrScanner.createQrEngine(QrScanner.WORKER_PATH);
+        this._qrEnginePromise = QrScanner.createQrEngine();
     }
 
     /* async */
@@ -316,6 +316,11 @@ export default class QrScanner {
                 .then((qrEngine) => QrScanner.scanImage(this.$video, this._sourceRect, qrEngine, this.$canvas, true))
                 .then(this._onDecode, (error) => {
                     if (!this._active) return;
+                    const errorMessage = error.message || error;
+                    if (errorMessage.indexOf('service unavailable') !== -1) {
+                        // When the native BarcodeDetector crashed, create a new one
+                        this._qrEnginePromise = QrScanner.createQrEngine();
+                    }
                     this._onDecodeError(error);
                 })
                 .then(() => this._scanFrame());
