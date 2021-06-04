@@ -9,6 +9,8 @@ declare class QrScanner {
 
     static hasCamera(): Promise<boolean>;
 
+    static getCameraList(): Promise<Array<QrScanner.Camera>>;
+
     constructor(
         video: HTMLVideoElement,
         onDecode: (result: string) => void,
@@ -36,6 +38,7 @@ declare class QrScanner {
     start(): Promise<void>;
     stop(): void;
     pause(): void;
+    setCamera(deviceId: string): void;
     setGrayscaleWeights(red: number, green: number, blue: number, useIntegerApproximation?: boolean): void;
     setInversionMode(inversionMode: QrScanner.InversionMode): void;
     static scanImage(
@@ -65,6 +68,11 @@ declare namespace QrScanner {
         height?: number;
         downScaledWidth?: number;
         downScaledHeight?: number;
+    }
+
+    export interface Camera {
+        id: string;
+        label: string;
     }
 
     export type InversionMode = 'original' | 'invert' | 'both';
