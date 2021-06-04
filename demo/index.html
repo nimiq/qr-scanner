@@ -46,6 +46,12 @@
     </select>
     <br>
 </div>
+<div>
+    <select id="cam-list">
+        <option value="">Automatic</option>
+    </select>
+    <br>
+</div>
 <b>Detected QR code: </b>
 <span id="cam-qr-result">None</span>
 <br>
@@ -74,6 +80,7 @@
     const camQrResultTimestamp = document.getElementById('cam-qr-result-timestamp');
     const fileSelector = document.getElementById('file-selector');
     const fileQrResult = document.getElementById('file-qr-result');
+    const camList = document.getElementById('cam-list');
 
     function setResult(label, result) {
         label.textContent = result;
@@ -86,6 +93,13 @@
     // ####### Web Cam Scanning #######
 
     QrScanner.hasCamera().then(hasCamera => camHasCamera.textContent = hasCamera);
+
+    QrScanner.getCameraList().then(cameras => cameras.forEach(camera => {
+        const option = document.createElement('option');
+        option.value = camera.id;
+        option.text = camera.label;
+        camList.add(option);
+    }));
 
     const scanner = new QrScanner(video, result => setResult(camQrResult, result), error => {
         camQrResult.textContent = error;
@@ -115,6 +129,10 @@
 
     document.getElementById('inversion-mode-select').addEventListener('change', event => {
         scanner.setInversionMode(event.target.value);
+    });
+
+    document.getElementById('cam-list').addEventListener('change', event => {
+        scanner.setCamera(event.target.value === '' ? null : event.target.value);
     });
 
     document.getElementById('start-button').addEventListener('click', () => {
