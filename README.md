@@ -195,6 +195,18 @@ This library provides a utility method for checking whether the device has a cam
 QrScanner.hasCamera(); // async
 ```
 
+### Getting list of available Cameras
+
+This library provides a utility method getting list of the device cameras. This can be useful for functionality to allow a user to sepcify specific camera to use.
+```js
+QrScanner.getCameraList(); // async
+```
+
+Selected camera can be specified later on using `id` property from camera list:
+```js
+qrScanner.setCamera(deviceId);
+```
+
 ### Color Inverted Mode
 The scanner by default scans for dark QR codes on a bright background. You can change this behavior to scan for bright QR codes on dark background or for both at the same time:
 ```js
