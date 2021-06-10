@@ -38,7 +38,7 @@ declare class QrScanner {
     start(): Promise<void>;
     stop(): void;
     pause(): void;
-    setCamera(deviceId: string): void;
+    setCamera(deviceId: string): Promise<void>;
     setGrayscaleWeights(red: number, green: number, blue: number, useIntegerApproximation?: boolean): void;
     setInversionMode(inversionMode: QrScanner.InversionMode): void;
     static scanImage(

@@ -204,7 +204,7 @@ QrScanner.getCameraList(); // async
 
 Selected camera can be specified later on using `id` property from camera list:
 ```js
-qrScanner.setCamera(deviceId);
+qrScanner.setCamera(deviceId); // async
 ```
 
 ### Color Inverted Mode
