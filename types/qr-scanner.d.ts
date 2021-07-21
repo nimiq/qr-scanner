@@ -46,7 +46,7 @@ declare class QrScanner {
         fixedCanvasSize?: boolean,
         alsoTryWithoutScanRegion?: boolean
     ): Promise<string>;
-    static createQrEnginge(workerPath?: string): Promise<Worker | BarcodeDetector>;
+    static createQrEngine(workerPath?: string): Promise<Worker | BarcodeDetector>;
 }
 
 // simplified from https://wicg.github.io/shape-detection-api/#barcode-detection-api
