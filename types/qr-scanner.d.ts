@@ -43,7 +43,7 @@ declare class QrScanner {
         scanRegion?: QrScanner.ScanRegion | null,
         worker?: Worker | null,
         canvas?: HTMLCanvasElement | null,
-        fixedCanvasSize?: boolean,
+        disallowCanvasResizing?: boolean,
         alsoTryWithoutScanRegion?: boolean
     ): Promise<string>;
     static createQrEngine(workerPath?: string): Promise<Worker | BarcodeDetector>;

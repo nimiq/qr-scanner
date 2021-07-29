@@ -183,7 +183,7 @@ export default class QrScanner {
     }
 
     /* async */
-    static scanImage(imageOrFileOrUrl, scanRegion=null, qrEngine=null, canvas=null, fixedCanvasSize=false,
+    static scanImage(imageOrFileOrUrl, scanRegion=null, qrEngine=null, canvas=null, disallowCanvasResizing=false,
                      alsoTryWithoutScanRegion=false) {
         const gotExternalWorker = qrEngine instanceof Worker;
 
@@ -193,7 +193,7 @@ export default class QrScanner {
         ]).then(([engine, image]) => {
             qrEngine = engine;
             let canvasContext;
-            [canvas, canvasContext] = this._drawToCanvas(image, scanRegion, canvas, fixedCanvasSize);
+            [canvas, canvasContext] = this._drawToCanvas(image, scanRegion, canvas, disallowCanvasResizing);
 
             if (qrEngine instanceof Worker) {
                 if (!gotExternalWorker) {
@@ -246,7 +246,8 @@ export default class QrScanner {
         });
 
         if (scanRegion && alsoTryWithoutScanRegion) {
-            promise = promise.catch(() => QrScanner.scanImage(imageOrFileOrUrl, null, qrEngine, canvas, fixedCanvasSize));
+            promise = promise.catch(() =>
+                QrScanner.scanImage(imageOrFileOrUrl, null, qrEngine, canvas, disallowCanvasResizing));
         }
 
         promise = promise.finally(() => {
@@ -399,13 +400,13 @@ export default class QrScanner {
                 : null; // unknown
     }
 
-    static _drawToCanvas(image, scanRegion=null, canvas=null, fixedCanvasSize=false) {
+    static _drawToCanvas(image, scanRegion=null, canvas=null, disallowCanvasResizing=false) {
         canvas = canvas || document.createElement('canvas');
         const scanRegionX = scanRegion && scanRegion.x? scanRegion.x : 0;
         const scanRegionY = scanRegion && scanRegion.y? scanRegion.y : 0;
         const scanRegionWidth = scanRegion && scanRegion.width? scanRegion.width : image.width || image.videoWidth;
         const scanRegionHeight = scanRegion && scanRegion.height? scanRegion.height : image.height || image.videoHeight;
-        if (!fixedCanvasSize) {
+        if (!disallowCanvasResizing) {
             canvas.width = scanRegion && scanRegion.downScaledWidth? scanRegion.downScaledWidth : scanRegionWidth;
             canvas.height = scanRegion && scanRegion.downScaledHeight? scanRegion.downScaledHeight : scanRegionHeight;
         }
