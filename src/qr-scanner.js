@@ -305,8 +305,8 @@ export default class QrScanner {
         const smallestDimension = Math.min(video.videoWidth, video.videoHeight);
         const scanRegionSize = Math.round(2 / 3 * smallestDimension);
         return {
-            x: (video.videoWidth - scanRegionSize) / 2,
-            y: (video.videoHeight - scanRegionSize) / 2,
+            x: Math.round((video.videoWidth - scanRegionSize) / 2),
+            y: Math.round((video.videoHeight - scanRegionSize) / 2),
             width: scanRegionSize,
             height: scanRegionSize,
             downScaledWidth: this._legacyCanvasSize,
@@ -406,10 +406,24 @@ export default class QrScanner {
         const scanRegionY = scanRegion && scanRegion.y? scanRegion.y : 0;
         const scanRegionWidth = scanRegion && scanRegion.width? scanRegion.width : image.width || image.videoWidth;
         const scanRegionHeight = scanRegion && scanRegion.height? scanRegion.height : image.height || image.videoHeight;
+
         if (!disallowCanvasResizing) {
-            canvas.width = scanRegion && scanRegion.downScaledWidth? scanRegion.downScaledWidth : scanRegionWidth;
-            canvas.height = scanRegion && scanRegion.downScaledHeight? scanRegion.downScaledHeight : scanRegionHeight;
+            const canvasWidth = scanRegion && scanRegion.downScaledWidth
+                ? scanRegion.downScaledWidth
+                : scanRegionWidth;
+            const canvasHeight = scanRegion && scanRegion.downScaledHeight
+                ? scanRegion.downScaledHeight
+                : scanRegionHeight;
+            // Setting the canvas width or height clears the canvas, even if the values didn't change, therefore only
+            // set them if they actually changed.
+            if (canvas.width !== canvasWidth) {
+                canvas.width = canvasWidth;
+            }
+            if (canvas.height !== canvasHeight) {
+                canvas.height = canvasHeight;
+            }
         }
+
         const context = canvas.getContext('2d', { alpha: false });
         context.imageSmoothingEnabled = false; // gives less blurry images
         context.drawImage(
