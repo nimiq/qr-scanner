@@ -50,15 +50,47 @@ export default class QrScanner {
         this._onLoadedMetaData = this._onLoadedMetaData.bind(this);
         this._onVisibilityChange = this._onVisibilityChange.bind(this);
 
+        video.disablePictureInPicture = true;
         // Allow inline playback on iPhone instead of requiring full screen playback,
         // see https://webkit.org/blog/6784/new-video-policies-for-ios/
-        this.$video.playsInline = true;
+        video.playsInline = true;
         // Allow play() on iPhone without requiring a user gesture. Should not really be needed as camera stream
         // includes no audio, but just to be safe.
-        this.$video.muted = true;
-        this.$video.disablePictureInPicture = true;
-        this.$video.addEventListener('play', this._onPlay);
-        this.$video.addEventListener('loadedmetadata', this._onLoadedMetaData);
+        video.muted = true;
+
+        // Avoid Safari stopping the video stream on a hidden video.
+        // See https://github.com/cozmo/jsQR/issues/185
+        let shouldHideVideo = false;
+        if (video.hidden) {
+            video.hidden = false;
+            shouldHideVideo = true;
+        }
+        if (!document.body.contains(video)) {
+            document.body.appendChild(video);
+            shouldHideVideo = true;
+        }
+        requestAnimationFrame(() => {
+            // Checking in requestAnimationFrame which should avoid a potential additional re-flow for getComputedStyle.
+            const computedStyle = window.getComputedStyle(video);
+            if (computedStyle.display === 'none') {
+                video.style.setProperty('display', 'block', 'important');
+                shouldHideVideo = true;
+            }
+            if (computedStyle.visibility !== 'visible') {
+                video.style.setProperty('visibility', 'visible', 'important');
+                shouldHideVideo = true;
+            }
+            if (shouldHideVideo) {
+                // Hide the video in a way that doesn't cause Safari to stop the playback.
+                console.warn('QrScanner has overwritten the video hiding style to avoid Safari stopping the playback.');
+                video.style.opacity = 0;
+                video.style.width = 0;
+                video.style.height = 0;
+            }
+        });
+
+        video.addEventListener('play', this._onPlay);
+        video.addEventListener('loadedmetadata', this._onLoadedMetaData);
         document.addEventListener('visibilitychange', this._onVisibilityChange);
 
         this._qrEnginePromise = QrScanner.createQrEngine();
