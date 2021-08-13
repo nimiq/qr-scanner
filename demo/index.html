@@ -76,11 +76,11 @@
     const camHasFlash = document.getElementById('cam-has-flash');
     const flashToggle = document.getElementById('flash-toggle');
     const flashState = document.getElementById('flash-state');
+    const camList = document.getElementById('cam-list');
     const camQrResult = document.getElementById('cam-qr-result');
     const camQrResultTimestamp = document.getElementById('cam-qr-result-timestamp');
     const fileSelector = document.getElementById('file-selector');
     const fileQrResult = document.getElementById('file-qr-result');
-    const camList = document.getElementById('cam-list');
 
     function setResult(label, result) {
         label.textContent = result;
@@ -91,15 +91,6 @@
     }
 
     // ####### Web Cam Scanning #######
-
-    QrScanner.hasCamera().then(hasCamera => camHasCamera.textContent = hasCamera);
-
-    QrScanner.getCameraList().then(cameras => cameras.forEach(camera => {
-        const option = document.createElement('option');
-        option.value = camera.id;
-        option.text = camera.label;
-        camList.add(option);
-    }));
 
     const scanner = new QrScanner(video, result => setResult(camQrResult, result), error => {
         camQrResult.textContent = error;
@@ -115,7 +106,20 @@
                 });
             }
         });
+
+        // List cameras after the scanner started to avoid listCamera's stream and the scanner's stream being requested
+        // at the same time which can result in listCamera's unconstrained stream also being offered to the scanner.
+        // Note that we can also start the scanner after listCameras, we just have it this way around in the demo to
+        // start the scanner earlier.
+        QrScanner.listCameras(true).then(cameras => cameras.forEach(camera => {
+            const option = document.createElement('option');
+            option.value = camera.id;
+            option.text = camera.label;
+            camList.add(option);
+        }));
     });
+
+    QrScanner.hasCamera().then(hasCamera => camHasCamera.textContent = hasCamera);
 
     // for debugging
     window.scanner = scanner;
@@ -131,8 +135,8 @@
         scanner.setInversionMode(event.target.value);
     });
 
-    document.getElementById('cam-list').addEventListener('change', event => {
-        scanner.setCamera(event.target.value === '' ? null : event.target.value);
+    camList.addEventListener('change', event => {
+        scanner.setCamera(event.target.value || null);
     });
 
     document.getElementById('start-button').addEventListener('click', () => {

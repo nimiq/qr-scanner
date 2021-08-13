@@ -1,46 +1,41 @@
 export default class QrScanner {
     /* async */
     static hasCamera() {
-        if (!navigator.mediaDevices) return Promise.resolve(false);
-        // note that enumerateDevices can always be called and does not prompt the user for permission. However, device
-        // labels are only readable if served via https and an active media stream exists or permanent permission is
-        // given. That doesn't matter for us though as we don't require labels.
-        return navigator.mediaDevices.enumerateDevices()
-            .then(devices => devices.some(device => device.kind === 'videoinput'))
+        return QrScanner.listCameras(false)
+            .then(cameras => !!cameras.length)
             .catch(() => false);
     }
 
     /* async */
-    static getCameraList() {
+    static listCameras(requestLabels = false) {
         if (!navigator.mediaDevices) return Promise.resolve([]);
 
-        // note that to enumarate devices and get device labels we need explicit user permission so we ask for that.
-        return new Promise((resolve, reject) => {
-            navigator.mediaDevices.getUserMedia({ audio: false, video: true })
-                .then((stream) => {
-                    // hacky approach to close any active stream if they are
-                    // active.
-                    const closeActiveStreams = (stream) => {
-                        const tracks = stream.getVideoTracks();
-                        for (let i = 0; i < tracks.length; i += 1) {
-                            const track = tracks[i];
-                            track.enabled = false;
-                            track.stop();
-                            stream.removeTrack(track);
-                        }
-                    };
-
-                    navigator.mediaDevices.enumerateDevices()
-                    .then(devices => {
-                        closeActiveStreams(stream);
-                        resolve(devices.filter(device => device.kind === 'videoinput').map(device => ({
-                            id: device.deviceId,
-                            label: device.label
-                        })));
-                    })
-                    .catch((err) => reject(err));
-                }).catch((err) => reject(err));
-        });
+        // Note that enumerateDevices can always be called and does not prompt the user for permission.
+        // However, enumerateDevices only includes device labels if served via https and an active media stream exists
+        // or permission to access the camera was given. Therefore, ask for camera permission by opening a stream, if
+        // labels were requested.
+        let openedStream = null;
+        return (requestLabels
+            ? navigator.mediaDevices.getUserMedia({ audio: false, video: true })
+                .then(stream => openedStream = stream)
+                // Fail gracefully, especially if the device has no camera or on mobile when the camera is already in
+                // use and some browsers disallow a second stream.
+                .catch(() => {})
+            : Promise.resolve()
+        )
+            .then(() => navigator.mediaDevices.enumerateDevices())
+            .then(devices => devices.filter(device => device.kind === 'videoinput').map((device, i) => ({
+                id: device.deviceId,
+                label: device.label || (i === 0 ? 'Default Camera' : `Camera ${i + 1}`),
+            })))
+            .finally(() => {
+                // close the stream we just opened for getting camera access for listing the device labels
+                if (!openedStream) return;
+                for (const track of openedStream.getTracks()) {
+                    track.stop();
+                    openedStream.removeTrack(track);
+                }
+            });
     }
 
     constructor(
@@ -215,6 +210,7 @@ export default class QrScanner {
             const tracks = this.$video.srcObject ? this.$video.srcObject.getTracks() : [];
             for (const track of tracks) {
                 track.stop(); //  note that this will also automatically turn the flashlight off
+                this.$video.srcObject.removeTrack(track);
             }
             this.$video.srcObject = null;
             this._offTimeout = null;
@@ -238,6 +234,7 @@ export default class QrScanner {
                 const tracks = this.$video.srcObject ? this.$video.srcObject.getTracks() : [];
                 for (const track of tracks) {
                     track.stop(); //  note that this will also automatically turn the flashlight off
+                    this.$video.srcObject.removeTrack(track);
                 }
                 this.$video.srcObject = null;
                 this._offTimeout = null;

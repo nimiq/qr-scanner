@@ -195,14 +195,17 @@ This library provides a utility method for checking whether the device has a cam
 QrScanner.hasCamera(); // async
 ```
 
-### Getting list of available Cameras
+### Getting the list of available Cameras
 
-This library provides a utility method getting list of the device cameras. This can be useful for functionality to allow a user to sepcify specific camera to use.
+This library provides a utility method for getting a list of the device's cameras, defined via their `id` and `label`. This can be useful for letting a user choose a specific camera to use.
+
+You can optionally request the camera's labels. Note that this however requires the user's permission to acess the cameras, which he will be asked for if not granted already. If not specifically requested, device labels are determined on a best effort basis, i.e. actual labels are returned if permissions were already granted and fallback labels otherwise.
 ```js
-QrScanner.getCameraList(); // async
+QrScanner.listCameras(); // async; without requesting camera labels
+QrScanner.listCameras(true); // async; requesting camera labels, potentially asking the user for permission
 ```
 
-Selected camera can be specified later on using `id` property from camera list:
+A specific camera to be used can then be specified via its `id`:
 ```js
 qrScanner.setCamera(deviceId); // async
 ```

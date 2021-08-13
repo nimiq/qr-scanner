@@ -9,7 +9,7 @@ declare class QrScanner {
 
     static hasCamera(): Promise<boolean>;
 
-    static getCameraList(): Promise<Array<QrScanner.Camera>>;
+    static listCameras(requestLabels: boolean): Promise<Array<QrScanner.Camera>>;
 
     constructor(
         video: HTMLVideoElement,
