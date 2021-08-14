@@ -152,13 +152,11 @@ export default class QrScanner {
             console.warn('The camera stream is only accessible if the page is transferred via https.');
         }
         this._active = true;
-        this._paused = false;
         if (document.hidden) {
             // camera will be started as soon as tab is in foreground
             return Promise.resolve();
         }
-        clearTimeout(this._offTimeout);
-        this._offTimeout = null;
+        this._paused = false;
         if (this.$video.srcObject) {
             // camera stream already/still set
             this.$video.play();
@@ -198,62 +196,46 @@ export default class QrScanner {
         this._active = false;
     }
 
-    pause() {
+    pause(stopStreamImmediately = false) {
         this._paused = true;
         if (!this._active) {
-            return;
+            return Promise.resolve(true);
         }
         this.$video.pause();
-        if (this._offTimeout) {
-            return;
-        }
-        this._offTimeout = setTimeout(() => {
+
+        const stopStream = () => {
             const tracks = this.$video.srcObject ? this.$video.srcObject.getTracks() : [];
             for (const track of tracks) {
                 track.stop(); //  note that this will also automatically turn the flashlight off
                 this.$video.srcObject.removeTrack(track);
             }
             this.$video.srcObject = null;
-            this._offTimeout = null;
-        }, 300);
+        };
+
+        if (stopStreamImmediately) {
+            stopStream();
+            return Promise.resolve(true);
+        }
+
+        return new Promise((resolve) => setTimeout(resolve, 300))
+            .then(() => {
+                if (!this._paused) return false;
+                stopStream();
+                return true;
+            });
     }
 
     /* async */
     setCamera(facingModeOrDeviceId) {
-        if (this.$video.srcObject === null) {
-            this._preferredCamera = facingModeOrDeviceId;
-            return Promise.resolve();
-        }
-
-        return new Promise((resolve, reject) => {
-            const active = this._active;
-            const paused = this._paused;
-
-            this._paused = true;
-            this.$video.pause();
-            this._offTimeout = setTimeout(() => {
-                const tracks = this.$video.srcObject ? this.$video.srcObject.getTracks() : [];
-                for (const track of tracks) {
-                    track.stop(); //  note that this will also automatically turn the flashlight off
-                    this.$video.srcObject.removeTrack(track);
-                }
-                this.$video.srcObject = null;
-                this._offTimeout = null;
-                this._preferredCamera = facingModeOrDeviceId;
-                if (active) {
-                    this.start().then(() => {
-                        if (paused) {
-                            this.pause();
-                        }
-                        resolve();
-                    }).catch((err) => {
-                        reject(err);
-                    });
-                    return;
-                }
-                resolve();
-            }, 300);
-            this._active = false;
+        if (facingModeOrDeviceId === this._preferredCamera) return Promise.resolve();
+        this._preferredCamera = facingModeOrDeviceId;
+        // Restart the scanner with the new camera which will also update the video mirror and the scan region. Note
+        // that we always pause the stream and not only if !this._paused as even if this._paused === true, the stream
+        // might still be running, as it's by default only stopped after a delay of 300ms.
+        const wasPaused = this._paused;
+        return this.pause(true).then((paused) => {
+            if (!paused || wasPaused || !this._active) return;
+            return this.start();
         });
     }
 
