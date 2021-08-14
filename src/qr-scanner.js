@@ -43,15 +43,13 @@ export default class QrScanner {
         onDecode,
         canvasSizeOrOnDecodeError = this._onDecodeError,
         canvasSizeOrCalculateScanRegion = this._calculateScanRegion,
-        preferredFacingMode = 'environment',
-        deviceId = null
+        preferredCamera = 'environment'
     ) {
         this.$video = video;
         this.$canvas = document.createElement('canvas');
         this._onDecode = onDecode;
         this._legacyCanvasSize = QrScanner.DEFAULT_CANVAS_SIZE;
-        this._preferredFacingMode = preferredFacingMode;
-        this._deviceId = deviceId;
+        this._preferredCamera = preferredCamera;
         this._active = false;
         this._paused = false;
         this._flashOn = false;
@@ -167,24 +165,27 @@ export default class QrScanner {
             return Promise.resolve();
         }
 
-        let facingMode = this._preferredFacingMode;
-        let deviceId = this._deviceId;
-        return this._getCameraStream(facingMode, deviceId, true)
+        let facingModeGuess = this._preferredCamera === 'environment' || this._preferredCamera === 'user'
+            ? this._preferredCamera
+            : null;
+        return this._getCameraStream(this._preferredCamera, true)
             .catch(() => {
-                if (deviceId) {
-                    return this._getCameraStream(facingMode, null, true);
-                }
-                // We (probably) don't have a camera of the requested facing mode
-                facingMode = facingMode === 'environment' ? 'user' : 'environment';
-                return this._getCameraStream(); // throws if camera is not accessible (e.g. due to not https)
+                // If _preferredCamera was a facing mode, we (probably) don't have a camera of the requested facing mode
+                // and switch our facing mode guess.
+                facingModeGuess = facingModeGuess === 'environment'
+                    ? 'user' // switch as the requested facing mode was not available
+                    : 'environment'; // switch, or also assume 'environment' as default if facingModeGuess was null
+                // Retry unconstrained. Throws if camera is not accessible (e.g. due to not https)
+                return this._getCameraStream();
             })
             .then(stream => {
-                // Try to determine the facing mode from the stream, otherwise use our guess. Note that the guess is not
-                // always accurate as Safari returns cameras of different facing mode, even for exact constraints.
-                facingMode = this._getFacingMode(stream) || facingMode;
+                // Try to determine the facing mode from the stream, otherwise use our guess or 'environment' as
+                // default. Note that the guess is not always accurate as Safari returns cameras of different facing
+                // mode, even for exact facingMode constraints.
+                facingModeGuess = this._getFacingMode(stream) || facingModeGuess || 'environment';
                 this.$video.srcObject = stream;
                 this.$video.play();
-                this._setVideoMirror(facingMode);
+                this._setVideoMirror(facingModeGuess);
             })
             .catch(e => {
                 this._active = false;
@@ -218,9 +219,9 @@ export default class QrScanner {
     }
 
     /* async */
-    setCamera(deviceId) {
+    setCamera(facingModeOrDeviceId) {
         if (this.$video.srcObject === null) {
-            this._deviceId = deviceId;
+            this._preferredCamera = facingModeOrDeviceId;
             return Promise.resolve();
         }
 
@@ -238,7 +239,7 @@ export default class QrScanner {
                 }
                 this.$video.srcObject = null;
                 this._offTimeout = null;
-                this._deviceId = deviceId;
+                this._preferredCamera = facingModeOrDeviceId;
                 if (active) {
                     this.start().then(() => {
                         if (paused) {
@@ -420,23 +421,21 @@ export default class QrScanner {
         console.log(error);
     }
 
-    _getCameraStream(facingMode, deviceId, exact = false) {
+    _getCameraStream(preferredCamera, exact = false) {
         const constraintsToTry = [{
             width: { min: 1024 }
         }, {
             width: { min: 768 }
         }, {}];
 
-        if (deviceId) {
+        if (preferredCamera) {
+            const preferenceType = preferredCamera === 'environment' || preferredCamera === 'user'
+                ? 'facingMode'
+                : 'deviceId';
             if (exact) {
-                deviceId = { exact: deviceId };
+                preferredCamera = { exact: preferredCamera };
             }
-            constraintsToTry.forEach(constraint => constraint.deviceId = deviceId);
-        } else if (facingMode) {
-            if (exact) {
-                facingMode = { exact: facingMode };
-            }
-            constraintsToTry.forEach(constraint => constraint.facingMode = facingMode);
+            constraintsToTry.forEach(constraint => constraint[preferenceType] = preferredCamera);
         }
 
         return this._getMatchingCameraStream(constraintsToTry);

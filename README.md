@@ -140,7 +140,7 @@ As an optional third parameter an error handler to be invoked on decoding errors
 
 As an optional fourth parameter a method can be provided that determines a region to which scanning should be restricted as a performance improvement. This region can optionally also be scaled down before performing the scan as an additional performance improvement. The region is specified as `x`, `y`, `width` and `height`; the dimensions for the downscaled region as `downScaledWidth` and `downScaledHeight`. Note that the aspect ratio between `width` and `height` and `downScaledWidth` and `downScaledHeight` should remain the same. By default, the scan region is restricted to a centered square of two thirds of the video width or height, whichever is smaller, and scaled down to a 400x400 square.
 
-As an optional fifth parameter a preference for the camera to use can be specified. Allowed values are `'environment'` and `'user'`. The default is `'environment'`.
+As an optional fifth parameter a preference for the camera to use can be specified. The preference can be either a device id as returned by `listCameras` or a facing mode specified as `'environment'` or `'user'`. The default is `'environment'`. Note that there is no guarantee that the preference can actually be fulfilled.
 
 To use the default value for an optional parameter, omit it or use `undefined`.
 
@@ -205,9 +205,12 @@ QrScanner.listCameras(); // async; without requesting camera labels
 QrScanner.listCameras(true); // async; requesting camera labels, potentially asking the user for permission
 ```
 
-A specific camera to be used can then be specified via its `id`:
+### Specifying which camera to use
+
+You can change the preferred camera to be used. The preference can be either a device id as returned by `listCameras` or a facing mode specified as `'environment'` or `'user'`. Note that there is no guarantee that the preference can actually be fulfilled.
+
 ```js
-qrScanner.setCamera(deviceId); // async
+qrScanner.setCamera(facingModeOrDeviceId); // async
 ```
 
 ### Color Inverted Mode

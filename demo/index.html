@@ -48,7 +48,8 @@
 </div>
 <div>
     <select id="cam-list">
-        <option value="">Automatic</option>
+        <option value="environment" selected>Environment Facing (default)</option>
+        <option value="user">User Facing</option>
     </select>
     <br>
 </div>
@@ -136,7 +137,7 @@
     });
 
     camList.addEventListener('change', event => {
-        scanner.setCamera(event.target.value || null);
+        scanner.setCamera(event.target.value);
     });
 
     document.getElementById('start-button').addEventListener('click', () => {
