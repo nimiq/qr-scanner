@@ -152,17 +152,38 @@ export default class QrScanner {
 
     /* async */
     toggleFlash() {
-      return this._setFlash(!this._flashOn);
-    }
-
-    /* async */
-    turnFlashOff() {
-      return this._setFlash(false);
+        if (this._flashOn) {
+            return this.turnFlashOff();
+        } else {
+            return this.turnFlashOn();
+        }
     }
 
     /* async */
     turnFlashOn() {
-      return this._setFlash(true);
+        if (this._flashOn) return Promise.resolve();
+        this._flashOn = true;
+        if (!this._active || this._paused) return Promise.resolve(); // flash will be turned on later on .start()
+        return this.hasFlash().then((hasFlash) => {
+            if (!hasFlash) return Promise.reject('No flash available');
+            // Note that the video track is guaranteed to exist at this point
+            return this.$video.srcObject.getVideoTracks()[0].applyConstraints({
+                advanced: [{ torch: true }],
+            });
+        }).catch(() => {
+            this._flashOn = false;
+            throw e;
+        });
+    }
+
+    /* async */
+    turnFlashOff() {
+        if (!this._flashOn) return;
+        // applyConstraints with torch: false does not work to turn the flashlight off, as a stream's torch stays
+        // continuously on, see https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints#torch. Therefore,
+        // we have to stop the stream to turn the flashlight off.
+        this._flashOn = false;
+        return this._restartVideoStream();
     }
 
     destroy() {
@@ -219,6 +240,7 @@ export default class QrScanner {
 
                 // Restart the flash if it was previously on
                 if (this._flashOn) {
+                    this._flashOn = false; // force turnFlashOn to restart the flash
                     this.turnFlashOn().catch(() => {});
                 }
             })
@@ -233,6 +255,7 @@ export default class QrScanner {
         this._active = false;
     }
 
+    /* async */
     pause(stopStreamImmediately = false) {
         this._paused = true;
         if (!this._active) {
@@ -266,14 +289,8 @@ export default class QrScanner {
     setCamera(facingModeOrDeviceId) {
         if (facingModeOrDeviceId === this._preferredCamera) return Promise.resolve();
         this._preferredCamera = facingModeOrDeviceId;
-        // Restart the scanner with the new camera which will also update the video mirror and the scan region. Note
-        // that we always pause the stream and not only if !this._paused as even if this._paused === true, the stream
-        // might still be running, as it's by default only stopped after a delay of 300ms.
-        const wasPaused = this._paused;
-        return this.pause(true).then((paused) => {
-            if (!paused || wasPaused || !this._active) return;
-            return this.start();
-        });
+        // Restart the scanner with the new camera which will also update the video mirror and the scan region.
+        return this._restartVideoStream();
     }
 
     /* async */
@@ -441,6 +458,7 @@ export default class QrScanner {
         console.log(error);
     }
 
+    /* async */
     _getCameraStream(preferredCamera, exact = false) {
         const constraintsToTry = [{
             width: { min: 1024 }
@@ -461,6 +479,7 @@ export default class QrScanner {
         return this._getMatchingCameraStream(constraintsToTry);
     }
 
+    /* async */
     _getMatchingCameraStream(constraintsToTry) {
         if (!navigator.mediaDevices || constraintsToTry.length === 0) {
             return Promise.reject('Camera not found.');
@@ -471,18 +490,13 @@ export default class QrScanner {
     }
 
     /* async */
-    _setFlash(on) {
-        this._flashOn = on;
-        if (on && (!this._active || this._paused)) return Promise.resolve(); // will be started later on .start
-        return this.hasFlash().then((hasFlash) => {
-            if (!hasFlash) return Promise.reject('No flash available');
-            // Note that the video track is guaranteed to exist at this point
-            return this.$video.srcObject.getVideoTracks()[0].applyConstraints({
-                advanced: [{ torch: on }],
-            });
-        }).catch((e) => {
-            this._flashOn = !on;
-            throw e;
+    _restartVideoStream() {
+        // Note that we always pause the stream and not only if !this._paused as even if this._paused === true, the
+        // stream might still be running, as it's by default only stopped after a delay of 300ms.
+        const wasPaused = this._paused;
+        return this.pause(true).then((paused) => {
+            if (!paused || wasPaused || !this._active) return;
+            return this.start();
         });
     }
 
