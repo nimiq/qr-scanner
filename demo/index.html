@@ -22,21 +22,12 @@
 </style>
 <h1>Scan from WebCam:</h1>
 <div>
-    <b>Device has camera: </b>
-    <span id="cam-has-camera"></span>
-    <br>
-    <b>Device has flash: </b>
-    <span id="cam-has-flash"></span>
-    <br>
     <video id="qr-video"></video>
     <br>
     <label>
         <input id="show-scan-region" type="checkbox">
         Show scan region
     </label>
-</div>
-<div>
-    <button id="flash-toggle">📸 Flash: <span id="flash-state">off</span></button>
 </div>
 <div>
     <select id="inversion-mode-select">
@@ -46,13 +37,22 @@
     </select>
     <br>
 </div>
+<b>Device has camera: </b>
+<span id="cam-has-camera"></span>
+<br>
 <div>
+    <b>Preferred camera:</b>
     <select id="cam-list">
         <option value="environment" selected>Environment Facing (default)</option>
         <option value="user">User Facing</option>
     </select>
-    <br>
 </div>
+<b>Camera has flash: </b>
+<span id="cam-has-flash"></span>
+<div>
+    <button id="flash-toggle">📸 Flash: <span id="flash-state">off</span></button>
+</div>
+<br>
 <b>Detected QR code: </b>
 <span id="cam-qr-result">None</span>
 <br>
@@ -74,10 +74,10 @@
 
     const video = document.getElementById('qr-video');
     const camHasCamera = document.getElementById('cam-has-camera');
+    const camList = document.getElementById('cam-list');
     const camHasFlash = document.getElementById('cam-has-flash');
     const flashToggle = document.getElementById('flash-toggle');
     const flashState = document.getElementById('flash-state');
-    const camList = document.getElementById('cam-list');
     const camQrResult = document.getElementById('cam-qr-result');
     const camQrResultTimestamp = document.getElementById('cam-qr-result-timestamp');
     const fileSelector = document.getElementById('file-selector');
@@ -97,17 +97,16 @@
         camQrResult.textContent = error;
         camQrResult.style.color = 'inherit';
     });
-    scanner.start().then(() => {
+
+    const updateFlashAvailability = () => {
         scanner.hasFlash().then(hasFlash => {
             camHasFlash.textContent = hasFlash;
-            if (hasFlash) {
-                flashToggle.style.display = 'inline-block';
-                flashToggle.addEventListener('click', () => {
-                    scanner.toggleFlash().then(() => flashState.textContent = scanner.isFlashOn() ? 'on' : 'off');
-                });
-            }
+            flashToggle.style.display = hasFlash ? 'inline-block' : 'none';
         });
+    };
 
+    scanner.start().then(() => {
+        updateFlashAvailability();
         // List cameras after the scanner started to avoid listCamera's stream and the scanner's stream being requested
         // at the same time which can result in listCamera's unconstrained stream also being offered to the scanner.
         // Note that we can also start the scanner after listCameras, we just have it this way around in the demo to
@@ -137,7 +136,11 @@
     });
 
     camList.addEventListener('change', event => {
-        scanner.setCamera(event.target.value);
+        scanner.setCamera(event.target.value).then(updateFlashAvailability);
+    });
+
+    flashToggle.addEventListener('click', () => {
+        scanner.toggleFlash().then(() => flashState.textContent = scanner.isFlashOn() ? 'on' : 'off');
     });
 
     document.getElementById('start-button').addEventListener('click', () => {
