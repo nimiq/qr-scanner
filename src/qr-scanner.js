@@ -216,6 +216,11 @@ export default class QrScanner {
                 this.$video.srcObject = stream;
                 this.$video.play();
                 this._setVideoMirror(facingModeGuess);
+
+                // Restart the flash if it was previously on
+                if (this._flashOn) {
+                    this.turnFlashOn().catch(() => {});
+                }
             })
             .catch(e => {
                 this._active = false;
@@ -467,13 +472,18 @@ export default class QrScanner {
 
     /* async */
     _setFlash(on) {
+        this._flashOn = on;
+        if (on && (!this._active || this._paused)) return Promise.resolve(); // will be started later on .start
         return this.hasFlash().then((hasFlash) => {
             if (!hasFlash) return Promise.reject('No flash available');
             // Note that the video track is guaranteed to exist at this point
             return this.$video.srcObject.getVideoTracks()[0].applyConstraints({
                 advanced: [{ torch: on }],
             });
-        }).then(() => this._flashOn = on);
+        }).catch((e) => {
+            this._flashOn = !on;
+            throw e;
+        });
     }
 
     _setVideoMirror(facingMode) {
