@@ -140,7 +140,7 @@ As an optional third parameter an error handler to be invoked on decoding errors
 
 As an optional fourth parameter a method can be provided that determines a region to which scanning should be restricted as a performance improvement. This region can optionally also be scaled down before performing the scan as an additional performance improvement. The region is specified as `x`, `y`, `width` and `height`; the dimensions for the downscaled region as `downScaledWidth` and `downScaledHeight`. Note that the aspect ratio between `width` and `height` and `downScaledWidth` and `downScaledHeight` should remain the same. By default, the scan region is restricted to a centered square of two thirds of the video width or height, whichever is smaller, and scaled down to a 400x400 square.
 
-As an optional fifth parameter a preference for the camera to use can be specified. Allowed values are `'environment'` and `'user'`. The default is `'environment'`.
+As an optional fifth parameter a preference for the camera to use can be specified. The preference can be either a device id as returned by `listCameras` or a facing mode specified as `'environment'` or `'user'`. The default is `'environment'`. Note that there is no guarantee that the preference can actually be fulfilled.
 
 To use the default value for an optional parameter, omit it or use `undefined`.
 
@@ -193,6 +193,24 @@ To use the default value for an optional parameter, omit it or use `undefined`.
 This library provides a utility method for checking whether the device has a camera. This can be useful for determining whether to offer the QR web cam scanning functionality to a user.
 ```js
 QrScanner.hasCamera(); // async
+```
+
+### Getting the list of available Cameras
+
+This library provides a utility method for getting a list of the device's cameras, defined via their `id` and `label`. This can be useful for letting a user choose a specific camera to use.
+
+You can optionally request the camera's labels. Note that this however requires the user's permission to acess the cameras, which he will be asked for if not granted already. If not specifically requested, device labels are determined on a best effort basis, i.e. actual labels are returned if permissions were already granted and fallback labels otherwise.
+```js
+QrScanner.listCameras(); // async; without requesting camera labels
+QrScanner.listCameras(true); // async; requesting camera labels, potentially asking the user for permission
+```
+
+### Specifying which camera to use
+
+You can change the preferred camera to be used. The preference can be either a device id as returned by `listCameras` or a facing mode specified as `'environment'` or `'user'`. Note that there is no guarantee that the preference can actually be fulfilled.
+
+```js
+qrScanner.setCamera(facingModeOrDeviceId); // async
 ```
 
 ### Color Inverted Mode

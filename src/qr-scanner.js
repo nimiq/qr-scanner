@@ -1,13 +1,41 @@
 export default class QrScanner {
     /* async */
     static hasCamera() {
-        if (!navigator.mediaDevices) return Promise.resolve(false);
-        // note that enumerateDevices can always be called and does not prompt the user for permission. However, device
-        // labels are only readable if served via https and an active media stream exists or permanent permission is
-        // given. That doesn't matter for us though as we don't require labels.
-        return navigator.mediaDevices.enumerateDevices()
-            .then(devices => devices.some(device => device.kind === 'videoinput'))
+        return QrScanner.listCameras(false)
+            .then(cameras => !!cameras.length)
             .catch(() => false);
+    }
+
+    /* async */
+    static listCameras(requestLabels = false) {
+        if (!navigator.mediaDevices) return Promise.resolve([]);
+
+        // Note that enumerateDevices can always be called and does not prompt the user for permission.
+        // However, enumerateDevices only includes device labels if served via https and an active media stream exists
+        // or permission to access the camera was given. Therefore, ask for camera permission by opening a stream, if
+        // labels were requested.
+        let openedStream = null;
+        return (requestLabels
+            ? navigator.mediaDevices.getUserMedia({ audio: false, video: true })
+                .then(stream => openedStream = stream)
+                // Fail gracefully, especially if the device has no camera or on mobile when the camera is already in
+                // use and some browsers disallow a second stream.
+                .catch(() => {})
+            : Promise.resolve()
+        )
+            .then(() => navigator.mediaDevices.enumerateDevices())
+            .then(devices => devices.filter(device => device.kind === 'videoinput').map((device, i) => ({
+                id: device.deviceId,
+                label: device.label || (i === 0 ? 'Default Camera' : `Camera ${i + 1}`),
+            })))
+            .finally(() => {
+                // close the stream we just opened for getting camera access for listing the device labels
+                if (!openedStream) return;
+                for (const track of openedStream.getTracks()) {
+                    track.stop();
+                    openedStream.removeTrack(track);
+                }
+            });
     }
 
     constructor(
@@ -15,13 +43,13 @@ export default class QrScanner {
         onDecode,
         canvasSizeOrOnDecodeError = this._onDecodeError,
         canvasSizeOrCalculateScanRegion = this._calculateScanRegion,
-        preferredFacingMode = 'environment'
+        preferredCamera = 'environment'
     ) {
         this.$video = video;
         this.$canvas = document.createElement('canvas');
         this._onDecode = onDecode;
         this._legacyCanvasSize = QrScanner.DEFAULT_CANVAS_SIZE;
-        this._preferredFacingMode = preferredFacingMode;
+        this._preferredCamera = preferredCamera;
         this._active = false;
         this._paused = false;
         this._flashOn = false;
@@ -156,33 +184,38 @@ export default class QrScanner {
             console.warn('The camera stream is only accessible if the page is transferred via https.');
         }
         this._active = true;
-        this._paused = false;
         if (document.hidden) {
             // camera will be started as soon as tab is in foreground
             return Promise.resolve();
         }
-        clearTimeout(this._offTimeout);
-        this._offTimeout = null;
+        this._paused = false;
         if (this.$video.srcObject) {
             // camera stream already/still set
             this.$video.play();
             return Promise.resolve();
         }
 
-        let facingMode = this._preferredFacingMode;
-        return this._getCameraStream(facingMode, true)
+        let facingModeGuess = this._preferredCamera === 'environment' || this._preferredCamera === 'user'
+            ? this._preferredCamera
+            : null;
+        return this._getCameraStream(this._preferredCamera, true)
             .catch(() => {
-                // We (probably) don't have a camera of the requested facing mode
-                facingMode = facingMode === 'environment' ? 'user' : 'environment';
-                return this._getCameraStream(); // throws if camera is not accessible (e.g. due to not https)
+                // If _preferredCamera was a facing mode, we (probably) don't have a camera of the requested facing mode
+                // and switch our facing mode guess.
+                facingModeGuess = facingModeGuess === 'environment'
+                    ? 'user' // switch as the requested facing mode was not available
+                    : 'environment'; // switch, or also assume 'environment' as default if facingModeGuess was null
+                // Retry unconstrained. Throws if camera is not accessible (e.g. due to not https)
+                return this._getCameraStream();
             })
             .then(stream => {
-                // Try to determine the facing mode from the stream, otherwise use our guess. Note that the guess is not
-                // always accurate as Safari returns cameras of different facing mode, even for exact constraints.
-                facingMode = this._getFacingMode(stream) || facingMode;
+                // Try to determine the facing mode from the stream, otherwise use our guess or 'environment' as
+                // default. Note that the guess is not always accurate as Safari returns cameras of different facing
+                // mode, even for exact facingMode constraints.
+                facingModeGuess = this._getFacingMode(stream) || facingModeGuess || 'environment';
                 this.$video.srcObject = stream;
                 this.$video.play();
-                this._setVideoMirror(facingMode);
+                this._setVideoMirror(facingModeGuess);
             })
             .catch(e => {
                 this._active = false;
@@ -195,23 +228,47 @@ export default class QrScanner {
         this._active = false;
     }
 
-    pause() {
+    pause(stopStreamImmediately = false) {
         this._paused = true;
         if (!this._active) {
-            return;
+            return Promise.resolve(true);
         }
         this.$video.pause();
-        if (this._offTimeout) {
-            return;
-        }
-        this._offTimeout = setTimeout(() => {
+
+        const stopStream = () => {
             const tracks = this.$video.srcObject ? this.$video.srcObject.getTracks() : [];
             for (const track of tracks) {
                 track.stop(); //  note that this will also automatically turn the flashlight off
+                this.$video.srcObject.removeTrack(track);
             }
             this.$video.srcObject = null;
-            this._offTimeout = null;
-        }, 300);
+        };
+
+        if (stopStreamImmediately) {
+            stopStream();
+            return Promise.resolve(true);
+        }
+
+        return new Promise((resolve) => setTimeout(resolve, 300))
+            .then(() => {
+                if (!this._paused) return false;
+                stopStream();
+                return true;
+            });
+    }
+
+    /* async */
+    setCamera(facingModeOrDeviceId) {
+        if (facingModeOrDeviceId === this._preferredCamera) return Promise.resolve();
+        this._preferredCamera = facingModeOrDeviceId;
+        // Restart the scanner with the new camera which will also update the video mirror and the scan region. Note
+        // that we always pause the stream and not only if !this._paused as even if this._paused === true, the stream
+        // might still be running, as it's by default only stopped after a delay of 300ms.
+        const wasPaused = this._paused;
+        return this.pause(true).then((paused) => {
+            if (!paused || wasPaused || !this._active) return;
+            return this.start();
+        });
     }
 
     /* async */
@@ -379,19 +436,23 @@ export default class QrScanner {
         console.log(error);
     }
 
-    _getCameraStream(facingMode, exact = false) {
+    _getCameraStream(preferredCamera, exact = false) {
         const constraintsToTry = [{
             width: { min: 1024 }
         }, {
             width: { min: 768 }
         }, {}];
 
-        if (facingMode) {
+        if (preferredCamera) {
+            const preferenceType = preferredCamera === 'environment' || preferredCamera === 'user'
+                ? 'facingMode'
+                : 'deviceId';
             if (exact) {
-                facingMode = { exact: facingMode };
+                preferredCamera = { exact: preferredCamera };
             }
-            constraintsToTry.forEach(constraint => constraint.facingMode = facingMode);
+            constraintsToTry.forEach(constraint => constraint[preferenceType] = preferredCamera);
         }
+
         return this._getMatchingCameraStream(constraintsToTry);
     }
 
