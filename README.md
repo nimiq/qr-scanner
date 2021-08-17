@@ -232,7 +232,7 @@ Where `red`, `green` and `blue` should sum up to 256 if `useIntegerApproximation
 
 ### Flashlight support
 
-On supported browsers, you can check whether the used camera has a flash and turn it on or off. Note that `qrScanner.start()` has to be called and awaited first.
+On supported browsers, you can check whether the currently used camera has a flash and turn it on or off. Note that hasFlash should be called after the scanner was successfully started to avoid the need to open a temporary camera stream just to query whether it has flash support, potentially asking the user for camera access.
 
 ```js
 qrScanner.hasFlash(); // check whether the browser and used camera support turning the flash on; async.

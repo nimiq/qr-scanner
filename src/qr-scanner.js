@@ -126,12 +126,26 @@ export default class QrScanner {
 
     /* async */
     hasFlash() {
-        const track = this.$video.srcObject ? this.$video.srcObject.getVideoTracks()[0] : null;
-        if (!track) {
-            return Promise.reject('Camera not started or not available');
-        }
-
-        return Promise.resolve('torch' in track.getSettings());
+        let openedStream = null;
+        return (this.$video.srcObject
+            ? Promise.resolve(this.$video.srcObject.getVideoTracks()[0])
+            : this._getCameraStream().then(({ stream }) => {
+                console.warn('Call hasFlash after successfully starting the scanner to avoid creating '
+                    + 'a temporary video stream');
+                openedStream = stream;
+                return stream.getVideoTracks()[0];
+            })
+        )
+            .then((track) => 'torch' in track.getSettings())
+            .catch(() => false)
+            .finally(() => {
+                // close the stream we just opened for detecting whether it supports flash
+                if (!openedStream) return;
+                for (const track of openedStream.getTracks()) {
+                    track.stop();
+                    openedStream.removeTrack(track);
+                }
+            });
     }
 
     isFlashOn() {
@@ -204,27 +218,11 @@ export default class QrScanner {
             return Promise.resolve();
         }
 
-        let facingModeGuess = this._preferredCamera === 'environment' || this._preferredCamera === 'user'
-            ? this._preferredCamera
-            : null;
-        return this._getCameraStream(this._preferredCamera, true)
-            .catch(() => {
-                // If _preferredCamera was a facing mode, we (probably) don't have a camera of the requested facing mode
-                // and switch our facing mode guess.
-                facingModeGuess = facingModeGuess === 'environment'
-                    ? 'user' // switch as the requested facing mode was not available
-                    : 'environment'; // switch, or also assume 'environment' as default if facingModeGuess was null
-                // Retry unconstrained. Throws if camera is not accessible (e.g. due to not https)
-                return this._getCameraStream();
-            })
-            .then(stream => {
-                // Try to determine the facing mode from the stream, otherwise use our guess or 'environment' as
-                // default. Note that the guess is not always accurate as Safari returns cameras of different facing
-                // mode, even for exact facingMode constraints.
-                facingModeGuess = this._getFacingMode(stream) || facingModeGuess || 'environment';
+        return this._getCameraStream()
+            .then(({ stream, facingMode }) => {
                 this.$video.srcObject = stream;
                 this.$video.play();
-                this._setVideoMirror(facingModeGuess);
+                this._setVideoMirror(facingMode);
 
                 // Restart the flash if it was previously on
                 if (this._flashOn) {
@@ -447,34 +445,44 @@ export default class QrScanner {
     }
 
     /* async */
-    _getCameraStream(preferredCamera, exact = false) {
-        const constraintsToTry = [{
+    _getCameraStream() {
+        if (!navigator.mediaDevices) {
+            return Promise.reject('Camera not found.');
+        }
+
+        const preferenceType = this._preferredCamera === 'environment' || this._preferredCamera === 'user'
+            ? 'facingMode'
+            : 'deviceId';
+        const constraintsWithoutCamera = [{
             width: { min: 1024 }
         }, {
             width: { min: 768 }
         }, {}];
+        const constraintsWithCamera = constraintsWithoutCamera.map((constraint) => Object.assign({}, constraint, {
+            [preferenceType]: { exact: this._preferredCamera },
+        }));
 
-        if (preferredCamera) {
-            const preferenceType = preferredCamera === 'environment' || preferredCamera === 'user'
-                ? 'facingMode'
-                : 'deviceId';
-            if (exact) {
-                preferredCamera = { exact: preferredCamera };
-            }
-            constraintsToTry.forEach(constraint => constraint[preferenceType] = preferredCamera);
-        }
-
-        return this._getMatchingCameraStream(constraintsToTry);
-    }
-
-    /* async */
-    _getMatchingCameraStream(constraintsToTry) {
-        if (!navigator.mediaDevices || constraintsToTry.length === 0) {
-            return Promise.reject('Camera not found.');
-        }
-        return navigator.mediaDevices.getUserMedia({
-            video: constraintsToTry.shift()
-        }).catch(() => this._getMatchingCameraStream(constraintsToTry));
+        // First try constraints with camera, then without camera. Using reduceRight as the Promise is build in a
+        // bottom up fashion.
+        return [...constraintsWithCamera, ...constraintsWithoutCamera].reduceRight((fallback, constraint) =>
+            () => navigator.mediaDevices.getUserMedia({ video: constraint, audio: false })
+                .then((stream) => ({
+                    stream,
+                    // Try to determine the facing mode from the stream, otherwise use a guess or 'environment' as
+                    // default. Note that the guess is not always accurate as Safari returns cameras of different facing
+                    // mode, even for exact facingMode constraints.
+                    facingMode: this._getFacingMode(stream)
+                        || (constraint.facingMode
+                            ? this._preferredCamera // _preferredCamera is a facing mode and we are able to fulfill it
+                            : (this._preferredCamera === 'environment'
+                                ? 'user' // switch as _preferredCamera was environment but we are not able to fulfill it
+                                : 'environment' // switch from unfulfilled user facingMode or default to environment
+                            )
+                        ),
+                }))
+                .catch(fallback),
+            () => Promise.reject('Camera not found.')
+        )();
     }
 
     /* async */
