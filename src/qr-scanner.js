@@ -373,7 +373,10 @@ export default class QrScanner {
 
     /* async */
     static createQrEngine(workerPath = QrScanner.WORKER_PATH) {
-        return ('BarcodeDetector' in window ? BarcodeDetector.getSupportedFormats() : Promise.resolve([]))
+        return ('BarcodeDetector' in window && BarcodeDetector.getSupportedFormats
+            ? BarcodeDetector.getSupportedFormats()
+            : Promise.resolve([])
+        )
             .then((supportedFormats) => supportedFormats.indexOf('qr_code') !== -1
                 ? new BarcodeDetector({ formats: ['qr_code'] })
                 : new Worker(workerPath)
