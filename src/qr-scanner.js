@@ -126,24 +126,12 @@ export default class QrScanner {
 
     /* async */
     hasFlash() {
-        if (!('ImageCapture' in window)) {
-            return Promise.resolve(false);
-        }
-
         const track = this.$video.srcObject ? this.$video.srcObject.getVideoTracks()[0] : null;
         if (!track) {
             return Promise.reject('Camera not started or not available');
         }
 
-        const imageCapture = new ImageCapture(track);
-        return imageCapture.getPhotoCapabilities()
-            .then((result) => {
-                return result.fillLightMode.includes('flash');
-            })
-            .catch((error) => {
-                console.warn(error);
-                return false;
-            });
+        return Promise.resolve('torch' in track.getSettings());
     }
 
     isFlashOn() {
