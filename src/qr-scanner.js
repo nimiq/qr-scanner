@@ -290,7 +290,7 @@ export default class QrScanner {
         ]).then(([engine, image]) => {
             qrEngine = engine;
             let canvasContext;
-            [canvas, canvasContext] = this._drawToCanvas(image, scanRegion, canvas, disallowCanvasResizing);
+            [canvas, canvasContext] = QrScanner._drawToCanvas(image, scanRegion, canvas, disallowCanvasResizing);
 
             if (qrEngine instanceof Worker) {
                 if (!gotExternalWorker) {
