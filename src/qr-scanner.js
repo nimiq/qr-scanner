@@ -172,7 +172,7 @@ export default class QrScanner {
             return this.$video.srcObject.getVideoTracks()[0].applyConstraints({
                 advanced: [{ torch: true }],
             });
-        }).catch(() => {
+        }).catch((e) => {
             this._flashOn = false;
             throw e;
         });
