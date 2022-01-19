@@ -6,7 +6,7 @@ In this library, several improvements have been applied over the original port:
 
 - Web cam scanning support out of the box
 - Uses the browser's native [BarcodeDetector](https://web.dev/shape-detection/) [if available](https://github.com/WICG/shape-detection-api#overview)
-- Lightweight: ~50.5 kB (~13.0 kB gzipped) minified with Google's closure compiler. If the native `BarcodeDetector` is available, only ~6.8 kB (~2.7 kB gzipped) are loaded.
+- Lightweight: ~53.3 kB (~14.1 kB gzipped) minified with Google's closure compiler. If the native `BarcodeDetector` is available, only ~9.4 kB (~3.6 kB gzipped) are loaded.
 - Improved performance and reduced memory footprint.
 - Runs in a WebWorker which keeps the main / UI thread responsive.
 - Can be configured for better performance on colored QR codes.

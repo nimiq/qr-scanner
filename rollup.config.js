@@ -18,8 +18,8 @@ export default [{
     }],
     plugins: [
         closureCompiler({
-            language_in: 'ECMASCRIPT6',
-            language_out: 'ECMASCRIPT6',
+            language_in: 'ECMASCRIPT_2017',
+            language_out: 'ECMASCRIPT_2017',
             rewrite_polyfills: false,
         })
     ]
