@@ -11,6 +11,8 @@
     "qr-scanner.min.js.map",
     "qr-scanner.umd.min.js",
     "qr-scanner.umd.min.js.map",
+    "qr-scanner.legacy.min.js",
+    "qr-scanner.legacy.min.js.map",
     "qr-scanner-worker.min.js",
     "qr-scanner-worker.min.js.map",
     "src/qr-scanner.js",

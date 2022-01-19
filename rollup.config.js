@@ -24,6 +24,22 @@ export default [{
         })
     ]
 }, {
+    // library legacy build
+    input: 'src/qr-scanner.js',
+    output: [{
+        file: 'qr-scanner.legacy.min.js',
+        format: 'esm',
+        interop: false,
+        sourcemap: true,
+    }],
+    plugins: [
+        closureCompiler({
+            language_in: 'ECMASCRIPT_2017',
+            language_out: 'ECMASCRIPT6',
+            rewrite_polyfills: false,
+        })
+    ]
+}, {
     // worker
     input: 'src/worker.js',
     output: {

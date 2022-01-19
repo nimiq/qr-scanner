@@ -77,6 +77,8 @@ const QrScanner = require('path/to/qr-scanner.umd.min.js'); // if not installed 
 // do something with QrScanner
 ```
 
+This library uses ECMAScript 2017 features like `async` functions. If you need to support old browsers, you can use `qr-scanner.legacy.min.js`, which is ECMAScript 2015 (ES6) compatible.
+
 ### Setting up the worker
 
 `qr-scanner-worker.min.js` is a plain Javascript file for the separate worker thread and needs to be copied over to your project. You should then point `QrScanner.WORKER_PATH` to the location where it will be hosted:
