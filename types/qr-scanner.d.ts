@@ -1,67 +1,58 @@
-// Type definitions for qr-scanner
-// Project: @nimiq/qr-scanner
-// Definitions by: Nimiq <www.nimiq.com>
-
-declare class QrScanner {
-    static DEFAULT_CANVAS_SIZE: number;
-    static NO_QR_CODE_FOUND: string;
+/// <reference types="offscreencanvas" />
+export default class QrScanner {
+    static readonly DEFAULT_CANVAS_SIZE = 400;
+    static readonly NO_QR_CODE_FOUND = "No QR code found";
     static WORKER_PATH: string;
-
     static hasCamera(): Promise<boolean>;
-
-    static listCameras(requestLabels: boolean): Promise<Array<QrScanner.Camera>>;
-
-    constructor(
-        video: HTMLVideoElement,
-        onDecode: (result: string) => void,
-        onDecodeError?: (error: string) => void,
-        calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion,
-        preferredCamera?: 'environment' | 'user' | QrScanner.DeviceId,
-    );
+    static listCameras(requestLabels?: boolean): Promise<Array<QrScanner.Camera>>;
+    $video: Omit<HTMLVideoElement, 'srcObject'> & {
+        srcObject: MediaStream | null;
+    };
+    $canvas: HTMLCanvasElement;
+    private readonly _onDecode;
+    private _preferredCamera;
+    private _scanRegion;
+    private _legacyCanvasSize;
+    private _qrEnginePromise;
+    private _active;
+    private _paused;
+    private _flashOn;
+    constructor(video: HTMLVideoElement, onDecode: (result: string) => void, onDecodeError?: (error: Error | string) => void, calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion, preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId);
     /** @deprecated */
-    constructor(
-        video: HTMLVideoElement,
-        onDecode: (result: string) => void,
-        onDecodeError?: (error: string) => void,
-        canvasSize?: number,
-        preferredCamera?: 'environment' | 'user' | QrScanner.DeviceId,
-    );
+    constructor(video: HTMLVideoElement, onDecode: (result: string) => void, onDecodeError?: (error: Error | string) => void, canvasSize?: number, preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId);
     /** @deprecated */
     constructor(video: HTMLVideoElement, onDecode: (result: string) => void, canvasSize?: number);
-
     hasFlash(): Promise<boolean>;
     isFlashOn(): boolean;
     toggleFlash(): Promise<void>;
-    turnFlashOff(): Promise<void>;
     turnFlashOn(): Promise<void>;
+    turnFlashOff(): Promise<void>;
     destroy(): void;
     start(): Promise<void>;
     stop(): void;
     pause(stopStreamImmediately?: boolean): Promise<boolean>;
-    setCamera(facingModeOrDeviceId: 'environment' | 'user' | QrScanner.DeviceId): Promise<void>;
+    setCamera(facingModeOrDeviceId: QrScanner.FacingMode | QrScanner.DeviceId): Promise<void>;
+    static scanImage(imageOrFileOrBlobOrUrl: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap | SVGImageElement | File | Blob | URL | String, scanRegion?: QrScanner.ScanRegion | null, qrEngine?: Worker | BarcodeDetector | Promise<Worker | BarcodeDetector> | null, canvas?: HTMLCanvasElement | null, disallowCanvasResizing?: boolean, alsoTryWithoutScanRegion?: boolean): Promise<string>;
     setGrayscaleWeights(red: number, green: number, blue: number, useIntegerApproximation?: boolean): void;
     setInversionMode(inversionMode: QrScanner.InversionMode): void;
-    static scanImage(
-        imageOrFileOrUrl: HTMLCanvasElement | HTMLVideoElement | ImageBitmap | HTMLImageElement | File | URL | String,
-        scanRegion?: QrScanner.ScanRegion | null,
-        worker?: Worker | null,
-        canvas?: HTMLCanvasElement | null,
-        disallowCanvasResizing?: boolean,
-        alsoTryWithoutScanRegion?: boolean
-    ): Promise<string>;
     static createQrEngine(workerPath?: string): Promise<Worker | BarcodeDetector>;
+    private _onPlay;
+    private _onLoadedMetaData;
+    private _onVisibilityChange;
+    private _calculateScanRegion;
+    private _scanFrame;
+    private _onDecodeError;
+    private _getCameraStream;
+    private _restartVideoStream;
+    private _setVideoMirror;
+    private _getFacingMode;
+    private static _drawToCanvas;
+    private static _loadImage;
+    private static _awaitImageLoad;
+    private static _postWorkerMessage;
 }
-
-// simplified from https://wicg.github.io/shape-detection-api/#barcode-detection-api
-declare class BarcodeDetector {
-    constructor(options?: { formats: string[] });
-    static getSupportedFormats(): Promise<string[]>;
-    detect(image: ImageBitmapSource): Promise<Array<{ rawValue: string }>>;
-}
-
-// exported types
 declare namespace QrScanner {
-    export interface ScanRegion {
+    interface ScanRegion {
         x?: number;
         y?: number;
         width?: number;
@@ -69,15 +60,21 @@ declare namespace QrScanner {
         downScaledWidth?: number;
         downScaledHeight?: number;
     }
-
-    export type DeviceId = string;
-
-    export interface Camera {
+    type FacingMode = 'environment' | 'user';
+    type DeviceId = string;
+    interface Camera {
         id: DeviceId;
         label: string;
     }
-
-    export type InversionMode = 'original' | 'invert' | 'both';
+    type InversionMode = 'original' | 'invert' | 'both';
 }
-
-export default QrScanner;
+declare class BarcodeDetector {
+    constructor(options?: {
+        formats: string[];
+    });
+    static getSupportedFormats(): Promise<string[]>;
+    detect(image: ImageBitmapSource): Promise<Array<{
+        rawValue: string;
+    }>>;
+}
+export {};

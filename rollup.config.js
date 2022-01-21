@@ -1,5 +1,7 @@
 import sourcemaps from 'rollup-plugin-sourcemaps';
-import typescript from '@rollup/plugin-typescript'; // config is a combination of tsconfig.json and overrides here
+// ts config is a combination of tsconfig.json and overrides here. Type declarations file is generated separately via
+// tsc (see build script in package.json), because rollup can not emit multiple files if using output.file option.
+import typescript from '@rollup/plugin-typescript';
 import closureCompiler from '@ampproject/rollup-plugin-closure-compiler';
 
 export default [{
