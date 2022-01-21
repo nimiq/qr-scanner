@@ -1,5 +1,9 @@
 export default class QrScanner {
-    static async hasCamera() {
+    static readonly DEFAULT_CANVAS_SIZE = 400;
+    static readonly NO_QR_CODE_FOUND = 'No QR code found';
+    static WORKER_PATH = 'qr-scanner-worker.min.js';
+
+    static async hasCamera(): Promise<boolean> {
         try {
             return !!(await QrScanner.listCameras(false)).length;
         } catch (e) {
@@ -7,14 +11,14 @@ export default class QrScanner {
         }
     }
 
-    static async listCameras(requestLabels = false) {
+    static async listCameras(requestLabels = false): Promise<Array<QrScanner.Camera>> {
         if (!navigator.mediaDevices) return [];
 
         // Note that enumerateDevices can always be called and does not prompt the user for permission.
         // However, enumerateDevices only includes device labels if served via https and an active media stream exists
         // or permission to access the camera was given. Therefore, ask for camera permission by opening a stream, if
         // labels were requested.
-        let openedStream = null;
+        let openedStream: MediaStream | undefined;
         if (requestLabels) {
             try {
                 openedStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
@@ -40,21 +44,52 @@ export default class QrScanner {
         }
     }
 
+    $video: Omit<HTMLVideoElement, 'srcObject'> & { srcObject: MediaStream | null }; //  we only set MediaStreams as src
+    $canvas: HTMLCanvasElement;
+    private readonly _onDecode: (result: string) => void;
+    private _preferredCamera: QrScanner.FacingMode | QrScanner.DeviceId;
+    private _scanRegion: QrScanner.ScanRegion;
+    private _legacyCanvasSize: number = QrScanner.DEFAULT_CANVAS_SIZE;
+    private _qrEnginePromise: Promise<Worker | BarcodeDetector>
+    private _active: boolean = false;
+    private _paused: boolean = false;
+    private _flashOn: boolean = false;
+
     constructor(
-        video,
-        onDecode,
-        canvasSizeOrOnDecodeError = this._onDecodeError,
-        canvasSizeOrCalculateScanRegion = this._calculateScanRegion,
-        preferredCamera = 'environment'
+        video: HTMLVideoElement,
+        onDecode: (result: string) => void,
+        onDecodeError?: (error: Error | string) => void,
+        calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion,
+        preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
+    );
+    /** @deprecated */
+    constructor(
+        video: HTMLVideoElement,
+        onDecode: (result: string) => void,
+        onDecodeError?: (error: Error | string) => void,
+        canvasSize?: number,
+        preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
+    );
+    /** @deprecated */
+    constructor(video: HTMLVideoElement, onDecode: (result: string) => void, canvasSize?: number);
+    constructor(
+        video: HTMLVideoElement,
+        onDecode: (result: string) => void,
+        canvasSizeOrOnDecodeError?: number | ((error: Error | string) => void),
+        canvasSizeOrCalculateScanRegion?: number | ((video: HTMLVideoElement) => QrScanner.ScanRegion),
+        preferredCamera: QrScanner.FacingMode | QrScanner.DeviceId = 'environment',
     ) {
-        this.$video = video;
+        canvasSizeOrOnDecodeError = canvasSizeOrOnDecodeError || this._onDecodeError;
+        canvasSizeOrCalculateScanRegion = canvasSizeOrCalculateScanRegion || this._calculateScanRegion;
+
+        if (video.srcObject && !(video.srcObject instanceof MediaStream)) {
+            throw 'Only MediaStreams are supported as video source.';
+        }
+
+        this.$video = video as QrScanner['$video'];
         this.$canvas = document.createElement('canvas');
         this._onDecode = onDecode;
-        this._legacyCanvasSize = QrScanner.DEFAULT_CANVAS_SIZE;
         this._preferredCamera = preferredCamera;
-        this._active = false;
-        this._paused = false;
-        this._flashOn = false;
 
         if (typeof canvasSizeOrOnDecodeError === 'number') {
             // legacy function signature where the third argument is the canvas size
@@ -80,9 +115,11 @@ export default class QrScanner {
         this._onLoadedMetaData = this._onLoadedMetaData.bind(this);
         this._onVisibilityChange = this._onVisibilityChange.bind(this);
 
+        // @ts-ignore
         video.disablePictureInPicture = true;
         // Allow inline playback on iPhone instead of requiring full screen playback,
         // see https://webkit.org/blog/6784/new-video-policies-for-ios/
+        // @ts-ignore
         video.playsInline = true;
         // Allow play() on iPhone without requiring a user gesture. Should not really be needed as camera stream
         // includes no audio, but just to be safe.
@@ -113,9 +150,9 @@ export default class QrScanner {
             if (shouldHideVideo) {
                 // Hide the video in a way that doesn't cause Safari to stop the playback.
                 console.warn('QrScanner has overwritten the video hiding style to avoid Safari stopping the playback.');
-                video.style.opacity = 0;
-                video.style.width = 0;
-                video.style.height = 0;
+                video.style.opacity = '0';
+                video.style.width = '0';
+                video.style.height = '0';
             }
         });
 
@@ -126,8 +163,8 @@ export default class QrScanner {
         this._qrEnginePromise = QrScanner.createQrEngine();
     }
 
-    async hasFlash() {
-        let stream = null;
+    async hasFlash(): Promise<boolean> {
+        let stream: MediaStream | undefined;
         try {
             stream = this.$video.srcObject || (await this._getCameraStream()).stream;
             return 'torch' in stream.getVideoTracks()[0].getSettings();
@@ -146,11 +183,11 @@ export default class QrScanner {
         }
     }
 
-    isFlashOn() {
+    isFlashOn(): boolean {
         return this._flashOn;
     }
 
-    async toggleFlash() {
+    async toggleFlash(): Promise<void> {
         if (this._flashOn) {
             await this.turnFlashOff();
         } else {
@@ -158,14 +195,15 @@ export default class QrScanner {
         }
     }
 
-    async turnFlashOn() {
+    async turnFlashOn(): Promise<void> {
         if (this._flashOn) return;
         this._flashOn = true;
         if (!this._active || this._paused) return; // flash will be turned on later on .start()
         try {
             if (!await this.hasFlash()) throw 'No flash available';
             // Note that the video track is guaranteed to exist at this point
-            await this.$video.srcObject.getVideoTracks()[0].applyConstraints({
+            await this.$video.srcObject!.getVideoTracks()[0].applyConstraints({
+                // @ts-ignore: constraint 'torch' is unknown to ts
                 advanced: [{ torch: true }],
             });
         } catch (e) {
@@ -174,7 +212,7 @@ export default class QrScanner {
         }
     }
 
-    async turnFlashOff() {
+    async turnFlashOff(): Promise<void> {
         if (!this._flashOn) return;
         // applyConstraints with torch: false does not work to turn the flashlight off, as a stream's torch stays
         // continuously on, see https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints#torch. Therefore,
@@ -183,7 +221,7 @@ export default class QrScanner {
         await this._restartVideoStream();
     }
 
-    destroy() {
+    destroy(): void {
         this.$video.removeEventListener('loadedmetadata', this._onLoadedMetaData);
         this.$video.removeEventListener('play', this._onPlay);
         document.removeEventListener('visibilitychange', this._onVisibilityChange);
@@ -192,7 +230,7 @@ export default class QrScanner {
         QrScanner._postWorkerMessage(this._qrEnginePromise, 'close');
     }
 
-    async start() {
+    async start(): Promise<void> {
         if (this._active && !this._paused) return;
 
         if (window.location.protocol !== 'https:') {
@@ -226,12 +264,12 @@ export default class QrScanner {
         }
     }
 
-    stop() {
+    stop(): void {
         this.pause();
         this._active = false;
     }
 
-    async pause(stopStreamImmediately = false) {
+    async pause(stopStreamImmediately = false): Promise<boolean> {
         this._paused = true;
         if (!this._active) return true;
         this.$video.pause();
@@ -240,7 +278,7 @@ export default class QrScanner {
             const tracks = this.$video.srcObject ? this.$video.srcObject.getTracks() : [];
             for (const track of tracks) {
                 track.stop(); //  note that this will also automatically turn the flashlight off
-                this.$video.srcObject.removeTrack(track);
+                this.$video.srcObject!.removeTrack(track);
             }
             this.$video.srcObject = null;
         };
@@ -256,7 +294,7 @@ export default class QrScanner {
         return true;
     }
 
-    async setCamera(facingModeOrDeviceId) {
+    async setCamera(facingModeOrDeviceId: QrScanner.FacingMode | QrScanner.DeviceId): Promise<void> {
         if (facingModeOrDeviceId === this._preferredCamera) return;
         this._preferredCamera = facingModeOrDeviceId;
         // Restart the scanner with the new camera which will also update the video mirror and the scan region.
@@ -264,37 +302,42 @@ export default class QrScanner {
     }
 
     static async scanImage(
-        imageOrFileOrUrl,
-        scanRegion = null,
-        qrEngine = null,
-        canvas = null,
-        disallowCanvasResizing = false,
-        alsoTryWithoutScanRegion = false
-    ) {
+        imageOrFileOrBlobOrUrl: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap
+            | SVGImageElement | File | Blob | URL | String,
+        scanRegion?: QrScanner.ScanRegion | null,
+        qrEngine?: Worker | BarcodeDetector | Promise<Worker | BarcodeDetector> | null,
+        canvas?: HTMLCanvasElement | null,
+        disallowCanvasResizing: boolean = false,
+        alsoTryWithoutScanRegion: boolean = false,
+    ): Promise<string> {
         const gotExternalEngine = !!qrEngine;
 
         try {
-            let image;
-            let canvasContext;
+            let image: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap
+                | SVGImageElement;
+            let canvasContext: CanvasRenderingContext2D;
             [qrEngine, image] = await Promise.all([
                 qrEngine || QrScanner.createQrEngine(),
-                QrScanner._loadImage(imageOrFileOrUrl),
+                QrScanner._loadImage(imageOrFileOrBlobOrUrl),
             ]);
-            [canvas, canvasContext] = this._drawToCanvas(image, scanRegion, canvas, disallowCanvasResizing);
+            [canvas, canvasContext] = QrScanner._drawToCanvas(image, scanRegion, canvas, disallowCanvasResizing);
 
             if (qrEngine instanceof Worker) {
+                const qrEngineWorker = qrEngine; // for ts to know that it's still a worker later in the event listeners
                 if (!gotExternalEngine) {
                     // Enable scanning of inverted color qr codes. Not using _postWorkerMessage as it's async
-                    qrEngine.postMessage({ type: 'inversionMode', data: 'both' });
+                    qrEngineWorker.postMessage({ type: 'inversionMode', data: 'both' });
                 }
                 return await new Promise((resolve, reject) => {
-                    let timeout, onMessage, onError;
-                    onMessage = event => {
+                    let timeout: number;
+                    let onMessage: (event: MessageEvent) => void;
+                    let onError: (error: ErrorEvent | string) => void;
+                    onMessage = (event: MessageEvent) => {
                         if (event.data.type !== 'qrResult') {
                             return;
                         }
-                        qrEngine.removeEventListener('message', onMessage);
-                        qrEngine.removeEventListener('error', onError);
+                        qrEngineWorker.removeEventListener('message', onMessage);
+                        qrEngineWorker.removeEventListener('error', onError);
                         clearTimeout(timeout);
                         if (event.data.data !== null) {
                             resolve(event.data.data);
@@ -302,47 +345,50 @@ export default class QrScanner {
                             reject(QrScanner.NO_QR_CODE_FOUND);
                         }
                     };
-                    onError = (e) => {
-                        qrEngine.removeEventListener('message', onMessage);
-                        qrEngine.removeEventListener('error', onError);
+                    onError = (error: ErrorEvent | string) => {
+                        qrEngineWorker.removeEventListener('message', onMessage);
+                        qrEngineWorker.removeEventListener('error', onError);
                         clearTimeout(timeout);
-                        const errorMessage = !e ? 'Unknown Error' : (e.message || e);
+                        const errorMessage = !error ? 'Unknown Error' : ((error as ErrorEvent).message || error);
                         reject('Scanner error: ' + errorMessage);
                     };
-                    qrEngine.addEventListener('message', onMessage);
-                    qrEngine.addEventListener('error', onError);
+                    qrEngineWorker.addEventListener('message', onMessage);
+                    qrEngineWorker.addEventListener('error', onError);
                     timeout = setTimeout(() => onError('timeout'), 10000);
-                    const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
-                    qrEngine.postMessage({
+                    const imageData = canvasContext.getImageData(0, 0, canvas!.width, canvas!.height);
+                    qrEngineWorker.postMessage({
                         type: 'decode',
                         data: imageData
                     }, [imageData.data.buffer]);
                 });
             } else {
                 return await Promise.race([
-                    new Promise((resolve, reject) => window.setTimeout(() => reject('Scanner error: timeout'), 10000)),
-                    (async () => {
+                    new Promise<string>((resolve, reject) => window.setTimeout(
+                        () => reject('Scanner error: timeout'),
+                        10000,
+                    )),
+                    (async (): Promise<string> => {
                         try {
-                            const [scanResult] = await qrEngine.detect(canvas);
+                            const [scanResult] = await qrEngine.detect(canvas!);
                             if (!scanResult) throw QrScanner.NO_QR_CODE_FOUND;
                             return scanResult.rawValue;
                         } catch (e) {
-                            throw `Scanner error: ${e instanceof Error ? e.message : e}`;
+                            throw `Scanner error: ${(e as Error).message || e}`;
                         }
                     })(),
                 ]);
             }
         } catch (e) {
             if (!scanRegion || !alsoTryWithoutScanRegion) throw e;
-            return await QrScanner.scanImage(imageOrFileOrUrl, null, qrEngine, canvas, disallowCanvasResizing);
+            return await QrScanner.scanImage(imageOrFileOrBlobOrUrl, null, qrEngine, canvas, disallowCanvasResizing);
         } finally {
             if (!gotExternalEngine) {
-                QrScanner._postWorkerMessage(qrEngine, 'close');
+                QrScanner._postWorkerMessage(qrEngine!, 'close');
             }
         }
     }
 
-    setGrayscaleWeights(red, green, blue, useIntegerApproximation = true) {
+    setGrayscaleWeights(red: number, green: number, blue: number, useIntegerApproximation: boolean = true): void {
         // Note that for the native BarcodeDecoder, this is a no-op. However, the native implementations work also
         // well with colored qr codes.
         QrScanner._postWorkerMessage(
@@ -352,29 +398,29 @@ export default class QrScanner {
         );
     }
 
-    setInversionMode(inversionMode) {
+    setInversionMode(inversionMode: QrScanner.InversionMode): void {
         // Note that for the native BarcodeDecoder, this is a no-op. However, the native implementations scan normal
         // and inverted qr codes by default
         QrScanner._postWorkerMessage(this._qrEnginePromise, 'inversionMode', inversionMode);
     }
 
-    static async createQrEngine(workerPath = QrScanner.WORKER_PATH) {
+    static async createQrEngine(workerPath: string = QrScanner.WORKER_PATH): Promise<Worker | BarcodeDetector> {
         const hasNativeBarcodeDetector = 'BarcodeDetector' in window && BarcodeDetector.getSupportedFormats
             ? (await BarcodeDetector.getSupportedFormats()).includes('qr_code')
             : false;
         return hasNativeBarcodeDetector ? new BarcodeDetector({ formats: ['qr_code'] }) : new Worker(workerPath);
     }
 
-    _onPlay() {
+    private _onPlay(): void {
         this._scanRegion = this._calculateScanRegion(this.$video);
         this._scanFrame();
     }
 
-    _onLoadedMetaData() {
+    private _onLoadedMetaData(): void {
         this._scanRegion = this._calculateScanRegion(this.$video);
     }
 
-    _onVisibilityChange() {
+    private _onVisibilityChange(): void {
         if (document.hidden) {
             this.pause();
         } else if (this._active) {
@@ -382,7 +428,7 @@ export default class QrScanner {
         }
     }
 
-    _calculateScanRegion(video) {
+    private _calculateScanRegion(video: HTMLVideoElement): QrScanner.ScanRegion {
         // Default scan region calculation. Note that this can be overwritten in the constructor.
         const smallestDimension = Math.min(video.videoWidth, video.videoHeight);
         const scanRegionSize = Math.round(2 / 3 * smallestDimension);
@@ -396,7 +442,7 @@ export default class QrScanner {
         };
     }
 
-    _scanFrame() {
+    private _scanFrame(): void {
         if (!this._active || this.$video.paused || this.$video.ended) return;
         // using requestAnimationFrame to avoid scanning if tab is in background
         requestAnimationFrame(async () => {
@@ -409,22 +455,22 @@ export default class QrScanner {
                 return;
             }
 
-            let result;
+            let result: string | undefined;
             try {
                 result = await QrScanner.scanImage(
                     this.$video,
                     this._scanRegion,
                     this._qrEnginePromise,
-                    this.$canvas
+                    this.$canvas,
                 );
             } catch (error) {
                 if (!this._active) return;
-                const errorMessage = error.message || error;
+                const errorMessage = (error as Error).message || error as string;
                 if (errorMessage.includes('service unavailable')) {
                     // When the native BarcodeDetector crashed, create a new one
                     this._qrEnginePromise = QrScanner.createQrEngine();
                 }
-                this._onDecodeError(error);
+                this._onDecodeError(error as Error | string);
             }
 
             if (result) {
@@ -435,19 +481,19 @@ export default class QrScanner {
         });
     }
 
-    _onDecodeError(error) {
+    private _onDecodeError(error: Error | string): void {
         // default error handler; can be overwritten in the constructor
         if (error === QrScanner.NO_QR_CODE_FOUND) return;
         console.log(error);
     }
 
-    async _getCameraStream() {
+    private async _getCameraStream(): Promise<{ stream: MediaStream, facingMode: QrScanner.FacingMode }> {
         if (!navigator.mediaDevices) throw 'Camera not found.';
 
-        const preferenceType = this._preferredCamera === 'environment' || this._preferredCamera === 'user'
+        const preferenceType = /^(environment|user)$/.test(this._preferredCamera)
             ? 'facingMode'
             : 'deviceId';
-        const constraintsWithoutCamera = [{
+        const constraintsWithoutCamera: Array<MediaTrackConstraints> = [{
             width: { min: 1024 }
         }, {
             width: { min: 768 }
@@ -464,7 +510,7 @@ export default class QrScanner {
                 // mode, even for exact facingMode constraints.
                 const facingMode = this._getFacingMode(stream)
                     || (constraints.facingMode
-                        ? this._preferredCamera // _preferredCamera is a facing mode and we are able to fulfill it
+                        ? this._preferredCamera as QrScanner.FacingMode // a facing mode we were able to fulfill
                         : (this._preferredCamera === 'environment'
                             ? 'user' // switch as _preferredCamera was environment but we are not able to fulfill it
                             : 'environment' // switch from unfulfilled user facingMode or default to environment
@@ -477,7 +523,7 @@ export default class QrScanner {
         throw 'Camera not found.';
     }
 
-    async _restartVideoStream() {
+    private async _restartVideoStream(): Promise<void> {
         // Note that we always pause the stream and not only if !this._paused as even if this._paused === true, the
         // stream might still be running, as it's by default only stopped after a delay of 300ms.
         const wasPaused = this._paused;
@@ -486,13 +532,13 @@ export default class QrScanner {
         await this.start();
     }
 
-    _setVideoMirror(facingMode) {
+    private _setVideoMirror(facingMode: QrScanner.FacingMode): void {
         // in user facing mode mirror the video to make it easier for the user to position the QR code
-        const scaleFactor = facingMode==='user'? -1 : 1;
+        const scaleFactor = facingMode === 'user'? -1 : 1;
         this.$video.style.transform = 'scaleX(' + scaleFactor + ')';
     }
 
-    _getFacingMode(videoStream) {
+    private _getFacingMode(videoStream: MediaStream): QrScanner.FacingMode | null {
         const videoTrack = videoStream.getVideoTracks()[0];
         if (!videoTrack) return null; // unknown
         // inspired by https://github.com/JodusNodus/react-qr-reader/blob/master/src/getDeviceId.js#L13
@@ -503,12 +549,22 @@ export default class QrScanner {
                 : null; // unknown
     }
 
-    static _drawToCanvas(image, scanRegion=null, canvas=null, disallowCanvasResizing=false) {
+    private static _drawToCanvas(
+        image: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap
+            | SVGImageElement,
+        scanRegion?: QrScanner.ScanRegion | null,
+        canvas?: HTMLCanvasElement | null,
+        disallowCanvasResizing= false,
+    ): [HTMLCanvasElement, CanvasRenderingContext2D] {
         canvas = canvas || document.createElement('canvas');
-        const scanRegionX = scanRegion && scanRegion.x? scanRegion.x : 0;
-        const scanRegionY = scanRegion && scanRegion.y? scanRegion.y : 0;
-        const scanRegionWidth = scanRegion && scanRegion.width? scanRegion.width : image.width || image.videoWidth;
-        const scanRegionHeight = scanRegion && scanRegion.height? scanRegion.height : image.height || image.videoHeight;
+        const scanRegionX = scanRegion && scanRegion.x ? scanRegion.x : 0;
+        const scanRegionY = scanRegion && scanRegion.y ? scanRegion.y : 0;
+        const scanRegionWidth = scanRegion && scanRegion.width
+            ? scanRegion.width
+            : (image as HTMLVideoElement).videoWidth || image.width as number;
+        const scanRegionHeight = scanRegion && scanRegion.height
+            ? scanRegion.height
+            : (image as HTMLVideoElement).videoHeight || image.height as number;
 
         if (!disallowCanvasResizing) {
             const canvasWidth = scanRegion && scanRegion.downScaledWidth
@@ -527,31 +583,37 @@ export default class QrScanner {
             }
         }
 
-        const context = canvas.getContext('2d', { alpha: false });
+        const context = canvas.getContext('2d', { alpha: false })!;
         context.imageSmoothingEnabled = false; // gives less blurry images
         context.drawImage(
             image,
             scanRegionX, scanRegionY, scanRegionWidth, scanRegionHeight,
-            0, 0, canvas.width, canvas.height
+            0, 0, canvas.width, canvas.height,
         );
         return [canvas, context];
     }
 
-    static async _loadImage(imageOrFileOrBlobOrUrl) {
-        if (imageOrFileOrBlobOrUrl instanceof HTMLCanvasElement || imageOrFileOrBlobOrUrl instanceof HTMLVideoElement
-            || window.ImageBitmap && imageOrFileOrBlobOrUrl instanceof window.ImageBitmap
-            || window.OffscreenCanvas && imageOrFileOrBlobOrUrl instanceof window.OffscreenCanvas) {
-            return imageOrFileOrBlobOrUrl;
-        } else if (imageOrFileOrBlobOrUrl instanceof Image) {
+    private static async _loadImage(
+        imageOrFileOrBlobOrUrl: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap
+            | SVGImageElement | File | Blob | URL | String,
+    ): Promise<HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap
+        | SVGImageElement > {
+        if (imageOrFileOrBlobOrUrl instanceof Image) {
             await QrScanner._awaitImageLoad(imageOrFileOrBlobOrUrl);
             return imageOrFileOrBlobOrUrl;
+        } else if (imageOrFileOrBlobOrUrl instanceof HTMLVideoElement
+            || imageOrFileOrBlobOrUrl instanceof HTMLCanvasElement
+            || imageOrFileOrBlobOrUrl instanceof SVGImageElement
+            || 'OffscreenCanvas' in window && imageOrFileOrBlobOrUrl instanceof OffscreenCanvas
+            || 'ImageBitmap' in window && imageOrFileOrBlobOrUrl instanceof ImageBitmap) {
+            return imageOrFileOrBlobOrUrl;
         } else if (imageOrFileOrBlobOrUrl instanceof File || imageOrFileOrBlobOrUrl instanceof Blob
-            || imageOrFileOrBlobOrUrl instanceof URL || typeof(imageOrFileOrBlobOrUrl)==='string') {
+            || imageOrFileOrBlobOrUrl instanceof URL || typeof imageOrFileOrBlobOrUrl === 'string') {
             const image = new Image();
             if (imageOrFileOrBlobOrUrl instanceof File || imageOrFileOrBlobOrUrl instanceof Blob) {
                 image.src = URL.createObjectURL(imageOrFileOrBlobOrUrl);
             } else {
-                image.src = imageOrFileOrBlobOrUrl;
+                image.src = imageOrFileOrBlobOrUrl.toString();
             }
             try {
                 await QrScanner._awaitImageLoad(image);
@@ -566,31 +628,59 @@ export default class QrScanner {
         }
     }
 
-    static async _awaitImageLoad(image) {
+    private static async _awaitImageLoad(image: HTMLImageElement): Promise<void> {
         if (image.complete && image.naturalWidth !== 0) return; // already loaded
-        await new Promise((resolve, reject) => {
-            let onLoad, onError;
-            onLoad = () => {
-                image.removeEventListener('load', onLoad);
-                image.removeEventListener('error', onError);
-                resolve();
+        await new Promise<void>((resolve, reject) => {
+            const listener = (event: ErrorEvent | Event) => {
+                image.removeEventListener('load', listener);
+                image.removeEventListener('error', listener);
+                if (event instanceof ErrorEvent) {
+                    reject('Image load error');
+                } else {
+                    resolve();
+                }
             };
-            onError = () => {
-                image.removeEventListener('load', onLoad);
-                image.removeEventListener('error', onError);
-                reject('Image load error');
-            };
-            image.addEventListener('load', onLoad);
-            image.addEventListener('error', onError);
+            image.addEventListener('load', listener);
+            image.addEventListener('error', listener);
         });
     }
 
-    static async _postWorkerMessage(qrEngineOrQrEnginePromise, type, data) {
+    private static async _postWorkerMessage(
+        qrEngineOrQrEnginePromise: Worker | BarcodeDetector | Promise<Worker | BarcodeDetector>,
+        type: string,
+        data?: any,
+    ): Promise<void> {
         const qrEngine = await qrEngineOrQrEnginePromise;
         if (!(qrEngine instanceof Worker)) return;
         qrEngine.postMessage({ type, data });
     }
 }
-QrScanner.DEFAULT_CANVAS_SIZE = 400;
-QrScanner.NO_QR_CODE_FOUND = 'No QR code found';
-QrScanner.WORKER_PATH = 'qr-scanner-worker.min.js';
+
+declare namespace QrScanner {
+    export interface ScanRegion {
+        x?: number;
+        y?: number;
+        width?: number;
+        height?: number;
+        downScaledWidth?: number;
+        downScaledHeight?: number;
+    }
+
+    export type FacingMode = 'environment' | 'user';
+    export type DeviceId = string;
+
+    export interface Camera {
+        id: DeviceId;
+        label: string;
+    }
+
+    export type InversionMode = 'original' | 'invert' | 'both';
+}
+
+// simplified from https://wicg.github.io/shape-detection-api/#barcode-detection-api
+declare class BarcodeDetector {
+    constructor(options?: { formats: string[] });
+    static getSupportedFormats(): Promise<string[]>;
+    detect(image: ImageBitmapSource): Promise<Array<{ rawValue: string }>>;
+}
+
