@@ -5,9 +5,7 @@ export default class QrScanner {
     static WORKER_PATH: string;
     static hasCamera(): Promise<boolean>;
     static listCameras(requestLabels?: boolean): Promise<Array<QrScanner.Camera>>;
-    $video: Omit<HTMLVideoElement, 'srcObject'> & {
-        srcObject: MediaStream | null;
-    };
+    $video: HTMLVideoElement;
     $canvas: HTMLCanvasElement;
     private readonly _onDecode;
     private _preferredCamera;

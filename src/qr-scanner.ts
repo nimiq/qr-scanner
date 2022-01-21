@@ -44,7 +44,7 @@ export default class QrScanner {
         }
     }
 
-    $video: Omit<HTMLVideoElement, 'srcObject'> & { srcObject: MediaStream | null }; //  we only set MediaStreams as src
+    $video: HTMLVideoElement;
     $canvas: HTMLCanvasElement;
     private readonly _onDecode: (result: string) => void;
     private _preferredCamera: QrScanner.FacingMode | QrScanner.DeviceId;
@@ -82,11 +82,7 @@ export default class QrScanner {
         canvasSizeOrOnDecodeError = canvasSizeOrOnDecodeError || this._onDecodeError;
         canvasSizeOrCalculateScanRegion = canvasSizeOrCalculateScanRegion || this._calculateScanRegion;
 
-        if (video.srcObject && !(video.srcObject instanceof MediaStream)) {
-            throw 'Only MediaStreams are supported as video source.';
-        }
-
-        this.$video = video as QrScanner['$video'];
+        this.$video = video;
         this.$canvas = document.createElement('canvas');
         this._onDecode = onDecode;
         this._preferredCamera = preferredCamera;
@@ -166,7 +162,12 @@ export default class QrScanner {
     async hasFlash(): Promise<boolean> {
         let stream: MediaStream | undefined;
         try {
-            stream = this.$video.srcObject || (await this._getCameraStream()).stream;
+            if (this.$video.srcObject) {
+                if (!(this.$video.srcObject instanceof MediaStream)) return false; // srcObject is not a camera stream
+                stream = this.$video.srcObject;
+            } else {
+                stream = (await this._getCameraStream()).stream;
+            }
             return 'torch' in stream.getVideoTracks()[0].getSettings();
         } catch (e) {
             return false;
@@ -201,8 +202,8 @@ export default class QrScanner {
         if (!this._active || this._paused) return; // flash will be turned on later on .start()
         try {
             if (!await this.hasFlash()) throw 'No flash available';
-            // Note that the video track is guaranteed to exist at this point
-            await this.$video.srcObject!.getVideoTracks()[0].applyConstraints({
+            // Note that the video track is guaranteed to exist and to be a MediaStream due to the check in hasFlash
+            await (this.$video.srcObject as MediaStream).getVideoTracks()[0].applyConstraints({
                 // @ts-ignore: constraint 'torch' is unknown to ts
                 advanced: [{ torch: true }],
             });
@@ -275,12 +276,14 @@ export default class QrScanner {
         this.$video.pause();
 
         const stopStream = () => {
-            const tracks = this.$video.srcObject ? this.$video.srcObject.getTracks() : [];
-            for (const track of tracks) {
-                track.stop(); //  note that this will also automatically turn the flashlight off
-                this.$video.srcObject!.removeTrack(track);
+            if (this.$video.srcObject instanceof MediaStream) {
+                // revoke srcObject only if it's a stream which was likely set by us
+                for (const track of this.$video.srcObject.getTracks()) {
+                    track.stop(); //  note that this will also automatically turn the flashlight off
+                    this.$video.srcObject.removeTrack(track);
+                }
+                this.$video.srcObject = null;
             }
-            this.$video.srcObject = null;
         };
 
         if (stopStreamImmediately) {
