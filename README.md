@@ -97,6 +97,8 @@ The `file-loader` automatically copies the worker script into your build and pro
 You can add the `file-loader` to your project via:
 ```bash
 npm install --save-dev file-loader
+# or
+yarn add --dev file-loader
 ```
 
 You can then use it to copy the worker file and obtain the `WORKER_PATH`:
@@ -114,6 +116,8 @@ The `raw-loader` bundles the worker as string into your build, thus no separate 
 You can add the `raw-loader` to your project via:
 ```bash
 npm install --save-dev raw-loader
+# or
+yarn add --dev raw-loader
 ```
 
 You can then use it to load the worker file and set the `WORKER_PATH`:
@@ -259,10 +263,10 @@ the /src folder. NodeJs is required for building.
 
 Install required build packages:
 ```batch
-npm install
+yarn
 ```
 
 Building:
 ```batch
-npm run build
+yarn build
 ```
