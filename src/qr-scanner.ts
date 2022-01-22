@@ -14,28 +14,33 @@ export default class QrScanner {
     static async listCameras(requestLabels = false): Promise<Array<QrScanner.Camera>> {
         if (!navigator.mediaDevices) return [];
 
+        const enumerateCameras = async (): Promise<Array<MediaDeviceInfo>> =>
+            (await navigator.mediaDevices.enumerateDevices()).filter((device) => device.kind === 'videoinput');
+
         // Note that enumerateDevices can always be called and does not prompt the user for permission.
         // However, enumerateDevices only includes device labels if served via https and an active media stream exists
-        // or permission to access the camera was given. Therefore, ask for camera permission by opening a stream, if
-        // labels were requested.
+        // or permission to access the camera was given. Therefore, if we're not getting labels but labels are requested
+        // ask for camera permission by opening a stream.
         let openedStream: MediaStream | undefined;
-        if (requestLabels) {
-            try {
-                openedStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
-            } catch (e) {
-                // Fail gracefully, especially if the device has no camera or on mobile when the camera is already in
-                // use and some browsers disallow a second stream.
-            }
-        }
         try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            return devices.filter(device => device.kind === 'videoinput').map((device, i) => ({
-                id: device.deviceId,
-                label: device.label || (i === 0 ? 'Default Camera' : `Camera ${i + 1}`),
+            if (requestLabels && (await enumerateCameras()).every((camera) => !camera.label)) {
+                openedStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+            }
+        } catch (e) {
+            // Fail gracefully, especially if the device has no camera or on mobile when the camera is already in use
+            // and some browsers disallow a second stream.
+        }
+
+        try {
+            return (await enumerateCameras()).map((camera, i) => ({
+                id: camera.deviceId,
+                label: camera.label || (i === 0 ? 'Default Camera' : `Camera ${i + 1}`),
             }));
         } finally {
             // close the stream we just opened for getting camera access for listing the device labels
             if (openedStream) {
+                console.warn('Call listCameras after successfully starting a QR scanner to avoid creating '
+                    + 'a temporary video stream');
                 for (const track of openedStream.getTracks()) {
                     track.stop();
                     openedStream.removeTrack(track);

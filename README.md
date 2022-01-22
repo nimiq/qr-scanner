@@ -205,7 +205,7 @@ QrScanner.hasCamera(); // async
 
 This library provides a utility method for getting a list of the device's cameras, defined via their `id` and `label`. This can be useful for letting a user choose a specific camera to use.
 
-You can optionally request the camera's labels. Note that this however requires the user's permission to acess the cameras, which he will be asked for if not granted already. If not specifically requested, device labels are determined on a best effort basis, i.e. actual labels are returned if permissions were already granted and fallback labels otherwise.
+You can optionally request the camera's labels. Note that this however requires the user's permission to access the cameras, which he will be asked for if not granted already. If not specifically requested, device labels are determined on a best effort basis, i.e. actual labels are returned if permissions were already granted and fallback labels otherwise. If you want to request camera labels, it's recommendable to call `listCameras` after a QrScanner instance was successfully started, as by then the user will already have given his permission.
 ```js
 QrScanner.listCameras(); // async; without requesting camera labels
 QrScanner.listCameras(true); // async; requesting camera labels, potentially asking the user for permission
