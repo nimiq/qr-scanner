@@ -15,6 +15,7 @@ export default class QrScanner {
     private _active;
     private _paused;
     private _flashOn;
+    private _destroyed;
     constructor(video: HTMLVideoElement, onDecode: (result: string) => void, onDecodeError?: (error: Error | string) => void, calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion, preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId);
     /** @deprecated */
     constructor(video: HTMLVideoElement, onDecode: (result: string) => void, onDecodeError?: (error: Error | string) => void, canvasSize?: number, preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId);
@@ -42,6 +43,7 @@ export default class QrScanner {
     private _onDecodeError;
     private _getCameraStream;
     private _restartVideoStream;
+    private static _stopVideoStream;
     private _setVideoMirror;
     private _getFacingMode;
     private static _drawToCanvas;

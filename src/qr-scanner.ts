@@ -41,10 +41,7 @@ export default class QrScanner {
             if (openedStream) {
                 console.warn('Call listCameras after successfully starting a QR scanner to avoid creating '
                     + 'a temporary video stream');
-                for (const track of openedStream.getTracks()) {
-                    track.stop();
-                    openedStream.removeTrack(track);
-                }
+                QrScanner._stopVideoStream(openedStream);
             }
         }
     }
@@ -59,6 +56,7 @@ export default class QrScanner {
     private _active: boolean = false;
     private _paused: boolean = false;
     private _flashOn: boolean = false;
+    private _destroyed: boolean = false;
 
     constructor(
         video: HTMLVideoElement,
@@ -181,10 +179,7 @@ export default class QrScanner {
             if (stream && stream !== this.$video.srcObject) {
                 console.warn('Call hasFlash after successfully starting the scanner to avoid creating '
                     + 'a temporary video stream');
-                for (const track of stream.getTracks()) {
-                    track.stop();
-                    stream.removeTrack(track);
-                }
+                QrScanner._stopVideoStream(stream);
             }
         }
     }
@@ -202,7 +197,7 @@ export default class QrScanner {
     }
 
     async turnFlashOn(): Promise<void> {
-        if (this._flashOn) return;
+        if (this._flashOn || this._destroyed) return;
         this._flashOn = true;
         if (!this._active || this._paused) return; // flash will be turned on later on .start()
         try {
@@ -232,12 +227,14 @@ export default class QrScanner {
         this.$video.removeEventListener('play', this._onPlay);
         document.removeEventListener('visibilitychange', this._onVisibilityChange);
 
-        this.stop();
+        this._destroyed = true;
+        this._flashOn = false;
+        this.stop(); // sets this._paused = true and this._active = false
         QrScanner._postWorkerMessage(this._qrEnginePromise, 'close');
     }
 
     async start(): Promise<void> {
-        if (this._active && !this._paused) return;
+        if ((this._active && !this._paused) || this._destroyed) return;
 
         if (window.location.protocol !== 'https:') {
             // warn but try starting the camera anyways
@@ -249,14 +246,19 @@ export default class QrScanner {
         this._paused = false;
         if (this.$video.srcObject) {
             // camera stream already/still set
-            this.$video.play();
+            await this.$video.play();
             return;
         }
 
         try {
             const { stream, facingMode } = await this._getCameraStream();
+            if (!this._active || this._paused) {
+                // was stopped in the meantime
+                QrScanner._stopVideoStream(stream);
+                return;
+            }
             this.$video.srcObject = stream;
-            this.$video.play();
+            await this.$video.play();
             this._setVideoMirror(facingMode);
 
             // Restart the flash if it was previously on
@@ -265,6 +267,7 @@ export default class QrScanner {
                 this.turnFlashOn().catch(() => {});
             }
         } catch (e) {
+            if (this._paused) return;
             this._active = false;
             throw e;
         }
@@ -283,10 +286,7 @@ export default class QrScanner {
         const stopStream = () => {
             if (this.$video.srcObject instanceof MediaStream) {
                 // revoke srcObject only if it's a stream which was likely set by us
-                for (const track of this.$video.srcObject.getTracks()) {
-                    track.stop(); //  note that this will also automatically turn the flashlight off
-                    this.$video.srcObject.removeTrack(track);
-                }
+                QrScanner._stopVideoStream(this.$video.srcObject);
                 this.$video.srcObject = null;
             }
         };
@@ -397,8 +397,8 @@ export default class QrScanner {
     }
 
     setGrayscaleWeights(red: number, green: number, blue: number, useIntegerApproximation: boolean = true): void {
-        // Note that for the native BarcodeDecoder, this is a no-op. However, the native implementations work also
-        // well with colored qr codes.
+        // Note that for the native BarcodeDecoder or if the worker was destroyed, this is a no-op. However, the native
+        // implementations work also well with colored qr codes.
         QrScanner._postWorkerMessage(
             this._qrEnginePromise,
             'grayscaleWeights',
@@ -407,8 +407,8 @@ export default class QrScanner {
     }
 
     setInversionMode(inversionMode: QrScanner.InversionMode): void {
-        // Note that for the native BarcodeDecoder, this is a no-op. However, the native implementations scan normal
-        // and inverted qr codes by default
+        // Note that for the native BarcodeDecoder or if the worker was destroyed, this is a no-op. However, the native
+        // implementations scan normal and inverted qr codes by default
         QrScanner._postWorkerMessage(this._qrEnginePromise, 'inversionMode', inversionMode);
     }
 
@@ -538,6 +538,13 @@ export default class QrScanner {
         const paused = await this.pause(true);
         if (!paused || wasPaused || !this._active) return;
         await this.start();
+    }
+
+    private static _stopVideoStream(stream : MediaStream): void {
+        for (const track of stream.getTracks()) {
+            track.stop(); //  note that this will also automatically turn the flashlight off
+            stream.removeTrack(track);
+        }
     }
 
     private _setVideoMirror(facingMode: QrScanner.FacingMode): void {
