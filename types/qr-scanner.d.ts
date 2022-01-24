@@ -16,6 +16,12 @@ export default class QrScanner {
     private _paused;
     private _flashOn;
     private _destroyed;
+    constructor(video: HTMLVideoElement, onDecode: (result: string) => void, options?: {
+        onDecodeError?: (error: Error | string) => void;
+        calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion;
+        preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId;
+    });
+    /** @deprecated */
     constructor(video: HTMLVideoElement, onDecode: (result: string) => void, onDecodeError?: (error: Error | string) => void, calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion, preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId);
     /** @deprecated */
     constructor(video: HTMLVideoElement, onDecode: (result: string) => void, onDecodeError?: (error: Error | string) => void, canvasSize?: number, preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId);
@@ -31,6 +37,14 @@ export default class QrScanner {
     stop(): void;
     pause(stopStreamImmediately?: boolean): Promise<boolean>;
     setCamera(facingModeOrDeviceId: QrScanner.FacingMode | QrScanner.DeviceId): Promise<void>;
+    static scanImage(imageOrFileOrBlobOrUrl: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap | SVGImageElement | File | Blob | URL | String, options?: {
+        scanRegion?: QrScanner.ScanRegion | null;
+        qrEngine?: Worker | BarcodeDetector | Promise<Worker | BarcodeDetector> | null;
+        canvas?: HTMLCanvasElement | null;
+        disallowCanvasResizing?: boolean;
+        alsoTryWithoutScanRegion?: boolean;
+    }): Promise<string>;
+    /** @deprecated */
     static scanImage(imageOrFileOrBlobOrUrl: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap | SVGImageElement | File | Blob | URL | String, scanRegion?: QrScanner.ScanRegion | null, qrEngine?: Worker | BarcodeDetector | Promise<Worker | BarcodeDetector> | null, canvas?: HTMLCanvasElement | null, disallowCanvasResizing?: boolean, alsoTryWithoutScanRegion?: boolean): Promise<string>;
     setGrayscaleWeights(red: number, green: number, blue: number, useIntegerApproximation?: boolean): void;
     setInversionMode(inversionMode: QrScanner.InversionMode): void;

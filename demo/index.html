@@ -93,9 +93,11 @@
 
     // ####### Web Cam Scanning #######
 
-    const scanner = new QrScanner(video, result => setResult(camQrResult, result), error => {
-        camQrResult.textContent = error;
-        camQrResult.style.color = 'inherit';
+    const scanner = new QrScanner(video, result => setResult(camQrResult, result), {
+        onDecodeError: error => {
+            camQrResult.textContent = error;
+            camQrResult.style.color = 'inherit';
+        },
     });
 
     const updateFlashAvailability = () => {

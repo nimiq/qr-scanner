@@ -142,13 +142,17 @@ Create a `<video>` element where the web cam video stream should get rendered:
 ```js
 const qrScanner = new QrScanner(videoElem, result => console.log('decoded qr code:', result));
 ```
-As an optional third parameter an error handler to be invoked on decoding errors can be specified. The default is `QrScanner._onDecodeError`.
 
-As an optional fourth parameter a method can be provided that determines a region to which scanning should be restricted as a performance improvement. This region can optionally also be scaled down before performing the scan as an additional performance improvement. The region is specified as `x`, `y`, `width` and `height`; the dimensions for the downscaled region as `downScaledWidth` and `downScaledHeight`. Note that the aspect ratio between `width` and `height` and `downScaledWidth` and `downScaledHeight` should remain the same. By default, the scan region is restricted to a centered square of two thirds of the video width or height, whichever is smaller, and scaled down to a 400x400 square.
+As an optional third parameter an options object can be provided.
+Supported options are:
 
-As an optional fifth parameter a preference for the camera to use can be specified. The preference can be either a device id as returned by `listCameras` or a facing mode specified as `'environment'` or `'user'`. The default is `'environment'`. Note that there is no guarantee that the preference can actually be fulfilled.
+| Option | Description |
+|---|---|
+| `onDecodeError` | Handler to be invoked on decoding errors. The default is `QrScanner._onDecodeError`. |
+| `preferredCamera` | Preference for the camera to be used. The preference can be either a device id as returned by `listCameras` or a facing mode specified as `'environment'` or `'user'`. The default is `'environment'`. Note that there is no guarantee that the preference can actually be fulfilled. |
+| `calculateScanRegion` | A method that determines a region to which scanning should be restricted as a performance improvement. This region can optionally also be scaled down before performing the scan as an additional performance improvement. The region is specified as `x`, `y`, `width` and `height`; the dimensions for the downscaled region as `downScaledWidth` and `downScaledHeight`. Note that the aspect ratio between `width` and `height` and `downScaledWidth` and `downScaledHeight` should remain the same. By default, the scan region is restricted to a centered square of two thirds of the video width or height, whichever is smaller, and scaled down to a 400x400 square. |
 
-To use the default value for an optional parameter, omit it or use `undefined`.
+To use the default value for an option, omit it or supply `undefined`.
 
 #### 3. Start scanning
 ```js
@@ -184,15 +188,18 @@ Supported image sources are:
 [Data URIs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs),
 URLs pointing to an image (if they are on the same origin or [CORS enabled](https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_enabled_image))
 
-As an optional second parameter a region defined by `x`, `y`, `width` and `height` can be specified to which the search for a QR code should be restricted. As a performance improvement this region can be scaled down before performing the scan by providing a `downScaledWidth` and `downScaledHeight`. By default, the region spans the whole image and is not scaled down.
+As an optional second parameter an options object can be provided.
+Supported options are:
 
-As an optional third parameter a manually created QR scanner engine instance to be reused can be specified. This improves performance if you're scanning a lot of images. An engine can be manually created via `QrScanner.createQrEngine(QrScanner.WORKER_PATH)` (async). By default, no engine is reused for single image scanning.
+| Option | Description |
+|---|---|
+| `scanRegion` | A region defined by `x`, `y`, `width` and `height` to which the search for a QR code should be restricted. As a performance improvement this region can be scaled down before performing the scan by providing a `downScaledWidth` and `downScaledHeight`. Note that the aspect ratio between `width` and `height` and `downScaledWidth` and `downScaledHeight` should remain the same. By default, the region spans the whole image and is not scaled down. |
+| `qrEngine` | A manually created QR scanner engine instance to be reused. This improves performance if you're scanning a lot of images. An engine can be manually created via `QrScanner.createQrEngine(QrScanner.WORKER_PATH)`. By default, no engine is reused for single image scanning. |
+| `canvas` | A manually created canvas to be reused. This improves performance if you're scanning a lot of images. A canvas can be manually created via a `<canvas>` tag in your markup or `document.createElement('canvas')`. By default, no canvas is reused for single image scanning. |
+| `disallowCanvasResizing` | Request a provided canvas for reuse to not be resized, irrespective of the source image or source region dimensions. Note that the canvas and source region should have the same aspect ratio to avoid that the image to scan gets distorted which could make detecting QR codes impossible. By default, the canvas size is adapted to the scan region dimensions or down scaled scan region for single image scanning. |
+| `alsoTryWithoutScanRegion` | Request a second scan on the entire image if a `scanRegion` was provided and no QR code was found within that region. By default, no second scan is attempted. |
 
-As an optional fourth parameter a manually created canvas to be reused can be specified. This improves performance if you're scanning a lot of images. A canvas can be manually created via a `<canvas>` tag in your markup or `document.createElement('canvas')`. By default, no canvas is reused for single image scanning.
-
-As an optional fifth parameter you can request a provided canvas for reuse to not be resized, irrespective of the source image or source region dimensions. Note that the canvas and source region should have the same aspect ratio to avoid that the image to scan gets distorted which could make detecting QR codes impossible. By default, the canvas size is adapted to the source region dimensions for single image scanning.
-
-To use the default value for an optional parameter, omit it or use `undefined`.
+To use the default value for an option, omit it or supply `undefined`.
 
 ### Checking for Camera availability
 

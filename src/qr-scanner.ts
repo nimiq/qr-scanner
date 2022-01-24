@@ -49,7 +49,7 @@ export default class QrScanner {
     $video: HTMLVideoElement;
     $canvas: HTMLCanvasElement;
     private readonly _onDecode: (result: string) => void;
-    private _preferredCamera: QrScanner.FacingMode | QrScanner.DeviceId;
+    private _preferredCamera: QrScanner.FacingMode | QrScanner.DeviceId = 'environment';
     private _scanRegion: QrScanner.ScanRegion;
     private _legacyCanvasSize: number = QrScanner.DEFAULT_CANVAS_SIZE;
     private _qrEnginePromise: Promise<Worker | BarcodeDetector>
@@ -58,6 +58,16 @@ export default class QrScanner {
     private _flashOn: boolean = false;
     private _destroyed: boolean = false;
 
+    constructor(
+        video: HTMLVideoElement,
+        onDecode: (result: string) => void,
+        options?: {
+            onDecodeError?: (error: Error | string) => void,
+            calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion,
+            preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
+        },
+    );
+    /** @deprecated */
     constructor(
         video: HTMLVideoElement,
         onDecode: (result: string) => void,
@@ -78,35 +88,40 @@ export default class QrScanner {
     constructor(
         video: HTMLVideoElement,
         onDecode: (result: string) => void,
-        canvasSizeOrOnDecodeError?: number | ((error: Error | string) => void),
+        canvasSizeOrOnDecodeErrorOrOptions?: number | ((error: Error | string) => void) | {
+            onDecodeError?: (error: Error | string) => void,
+            calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion,
+            preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
+        },
         canvasSizeOrCalculateScanRegion?: number | ((video: HTMLVideoElement) => QrScanner.ScanRegion),
-        preferredCamera: QrScanner.FacingMode | QrScanner.DeviceId = 'environment',
+        preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
     ) {
-        canvasSizeOrOnDecodeError = canvasSizeOrOnDecodeError || this._onDecodeError;
-        canvasSizeOrCalculateScanRegion = canvasSizeOrCalculateScanRegion || this._calculateScanRegion;
-
         this.$video = video;
         this.$canvas = document.createElement('canvas');
         this._onDecode = onDecode;
-        this._preferredCamera = preferredCamera;
 
-        if (typeof canvasSizeOrOnDecodeError === 'number') {
-            // legacy function signature where the third argument is the canvas size
-            this._legacyCanvasSize = canvasSizeOrOnDecodeError;
+        if ((canvasSizeOrOnDecodeErrorOrOptions && typeof canvasSizeOrOnDecodeErrorOrOptions !== 'object')
+            || (canvasSizeOrCalculateScanRegion || preferredCamera)) {
+            // New constructor signature has the optional options object as last argument not followed by anything else.
             console.warn('You\'re using a deprecated version of the QrScanner constructor which will be removed in '
                 + 'the future');
-        } else {
-            this._onDecodeError = canvasSizeOrOnDecodeError;
         }
 
-        if (typeof canvasSizeOrCalculateScanRegion === 'number') {
-            // legacy function signature where the fourth argument is the canvas size
-            this._legacyCanvasSize = canvasSizeOrCalculateScanRegion;
-            console.warn('You\'re using a deprecated version of the QrScanner constructor which will be removed in '
-                + 'the future');
-        } else {
-            this._calculateScanRegion = canvasSizeOrCalculateScanRegion;
-        }
+        const options = typeof canvasSizeOrOnDecodeErrorOrOptions === 'object'
+            ? canvasSizeOrOnDecodeErrorOrOptions
+            : {};
+        this._onDecodeError = options.onDecodeError || (typeof canvasSizeOrOnDecodeErrorOrOptions === 'function'
+            ? canvasSizeOrOnDecodeErrorOrOptions
+            : this._onDecodeError);
+        this._calculateScanRegion = options.calculateScanRegion || (typeof canvasSizeOrCalculateScanRegion==='function'
+            ? canvasSizeOrCalculateScanRegion
+            : this._calculateScanRegion);
+        this._preferredCamera = options.preferredCamera || preferredCamera || this._preferredCamera;
+        this._legacyCanvasSize = typeof canvasSizeOrOnDecodeErrorOrOptions === 'number'
+            ? canvasSizeOrOnDecodeErrorOrOptions
+            : typeof canvasSizeOrCalculateScanRegion === 'number'
+                ? canvasSizeOrCalculateScanRegion
+                : this._legacyCanvasSize;
 
         this._scanRegion = this._calculateScanRegion(video);
 
@@ -312,12 +327,57 @@ export default class QrScanner {
     static async scanImage(
         imageOrFileOrBlobOrUrl: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap
             | SVGImageElement | File | Blob | URL | String,
+        options?: {
+            scanRegion?: QrScanner.ScanRegion | null,
+            qrEngine?: Worker | BarcodeDetector | Promise<Worker | BarcodeDetector> | null,
+            canvas?: HTMLCanvasElement | null,
+            disallowCanvasResizing?: boolean,
+            alsoTryWithoutScanRegion?: boolean,
+        },
+    ): Promise<string>;
+    /** @deprecated */
+    static async scanImage(
+        imageOrFileOrBlobOrUrl: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap
+            | SVGImageElement | File | Blob | URL | String,
         scanRegion?: QrScanner.ScanRegion | null,
+        qrEngine?: Worker | BarcodeDetector | Promise<Worker | BarcodeDetector> | null,
+        canvas?: HTMLCanvasElement | null,
+        disallowCanvasResizing?: boolean,
+        alsoTryWithoutScanRegion?: boolean,
+    ): Promise<string>;
+    static async scanImage(
+        imageOrFileOrBlobOrUrl: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap
+            | SVGImageElement | File | Blob | URL | String,
+        scanRegionOrOptions?: QrScanner.ScanRegion | {
+            scanRegion?: QrScanner.ScanRegion | null,
+            qrEngine?: Worker | BarcodeDetector | Promise<Worker | BarcodeDetector> | null,
+            canvas?: HTMLCanvasElement | null,
+            disallowCanvasResizing?: boolean,
+            alsoTryWithoutScanRegion?: boolean,
+        } | null,
         qrEngine?: Worker | BarcodeDetector | Promise<Worker | BarcodeDetector> | null,
         canvas?: HTMLCanvasElement | null,
         disallowCanvasResizing: boolean = false,
         alsoTryWithoutScanRegion: boolean = false,
     ): Promise<string> {
+        let scanRegion: QrScanner.ScanRegion | null | undefined;
+        if (scanRegionOrOptions && (
+            'scanRegion' in scanRegionOrOptions
+            || 'qrEngine' in scanRegionOrOptions
+            || 'canvas' in scanRegionOrOptions
+            || 'disallowCanvasResizing' in scanRegionOrOptions
+            || 'alsoTryWithoutScanRegion' in scanRegionOrOptions
+        )) {
+            // we got an options object
+            scanRegion = scanRegionOrOptions.scanRegion;
+            qrEngine = scanRegionOrOptions.qrEngine;
+            canvas = scanRegionOrOptions.canvas;
+            disallowCanvasResizing = scanRegionOrOptions.disallowCanvasResizing || false;
+            alsoTryWithoutScanRegion = scanRegionOrOptions.alsoTryWithoutScanRegion || false;
+        } else if (scanRegionOrOptions || qrEngine || canvas || disallowCanvasResizing || alsoTryWithoutScanRegion) {
+            console.warn('You\'re using a deprecated api for scanImage which will be removed in the future.');
+        }
+
         const gotExternalEngine = !!qrEngine;
 
         try {
@@ -388,7 +448,7 @@ export default class QrScanner {
             }
         } catch (e) {
             if (!scanRegion || !alsoTryWithoutScanRegion) throw e;
-            return await QrScanner.scanImage(imageOrFileOrBlobOrUrl, null, qrEngine, canvas, disallowCanvasResizing);
+            return await QrScanner.scanImage(imageOrFileOrBlobOrUrl, { qrEngine, canvas, disallowCanvasResizing });
         } finally {
             if (!gotExternalEngine) {
                 QrScanner._postWorkerMessage(qrEngine!, 'close');
@@ -465,12 +525,11 @@ export default class QrScanner {
 
             let result: string | undefined;
             try {
-                result = await QrScanner.scanImage(
-                    this.$video,
-                    this._scanRegion,
-                    this._qrEnginePromise,
-                    this.$canvas,
-                );
+                result = await QrScanner.scanImage(this.$video, {
+                    scanRegion: this._scanRegion,
+                    qrEngine: this._qrEnginePromise,
+                    canvas: this.$canvas,
+                });
             } catch (error) {
                 if (!this._active) return;
                 const errorMessage = (error as Error).message || error as string;
