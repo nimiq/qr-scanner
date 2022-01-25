@@ -46,9 +46,24 @@ function decode(data: { data: Uint8ClampedArray, width: number, height: number }
         inversionAttempts: inversionAttempts,
         greyScaleWeights: grayscaleWeights,
     });
+    if (!result) {
+        (self as unknown as Worker).postMessage({
+            type: 'qrResult',
+            data: null,
+        });
+        return;
+    }
+
     (self as unknown as Worker).postMessage({
         type: 'qrResult',
-        data: result? result.data : null,
+        data: result.data,
+        // equivalent to cornerPoints of native BarcodeDetector
+        cornerPoints: [
+            result.location.topLeftCorner,
+            result.location.topRightCorner,
+            result.location.bottomRightCorner,
+            result.location.bottomLeftCorner,
+        ],
     });
 }
 

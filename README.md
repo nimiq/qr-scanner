@@ -6,7 +6,7 @@ In this library, several improvements have been applied over the original port:
 
 - Web cam scanning support out of the box
 - Uses the browser's native [BarcodeDetector](https://web.dev/shape-detection/) [if available](https://github.com/WICG/shape-detection-api#overview)
-- Lightweight: ~53.1 kB (~14.1 kB gzipped) minified with Google's closure compiler. If the native `BarcodeDetector` is available, only ~9.4 kB (~3.6 kB gzipped) are loaded.
+- Lightweight: ~54.9 kB (~14.7 kB gzipped) minified with Google's closure compiler. If the native `BarcodeDetector` is available, only ~11.0 kB (~4.1 kB gzipped) are loaded.
 - Improved performance and reduced memory footprint.
 - Runs in a WebWorker which keeps the main / UI thread responsive.
 - Can be configured for better performance on colored QR codes.
@@ -151,8 +151,15 @@ Supported options are:
 | `onDecodeError` | Handler to be invoked on decoding errors. The default is `QrScanner._onDecodeError`. |
 | `preferredCamera` | Preference for the camera to be used. The preference can be either a device id as returned by `listCameras` or a facing mode specified as `'environment'` or `'user'`. The default is `'environment'`. Note that there is no guarantee that the preference can actually be fulfilled. |
 | `calculateScanRegion` | A method that determines a region to which scanning should be restricted as a performance improvement. This region can optionally also be scaled down before performing the scan as an additional performance improvement. The region is specified as `x`, `y`, `width` and `height`; the dimensions for the downscaled region as `downScaledWidth` and `downScaledHeight`. Note that the aspect ratio between `width` and `height` and `downScaledWidth` and `downScaledHeight` should remain the same. By default, the scan region is restricted to a centered square of two thirds of the video width or height, whichever is smaller, and scaled down to a 400x400 square. |
+| `returnDetailedScanResult` | Enforce reporting detailed scan results, see below. |
 
 To use the default value for an option, omit it or supply `undefined`.
+
+Results passed to the callback depend on whether an options object was provided:
+- If no options object was provided, the result is a string with the read QR code's content. The simple string return type is for backwards compatibility, is now deprecated and will be removed in the future.
+- If an options object was provided the result is an object with properties `data` which is the read QR code's string content and `cornerPoints` which are the corner points of the read QR code's outline on the camera stream.
+
+To avoid usage of the deprecated api if you're not supplying any other options, you can supply `{ returnDetailedScanResult: true }` to enable the new api and get the detailed scan result.
 
 #### 3. Start scanning
 ```js
@@ -198,8 +205,17 @@ Supported options are:
 | `canvas` | A manually created canvas to be reused. This improves performance if you're scanning a lot of images. A canvas can be manually created via a `<canvas>` tag in your markup or `document.createElement('canvas')`. By default, no canvas is reused for single image scanning. |
 | `disallowCanvasResizing` | Request a provided canvas for reuse to not be resized, irrespective of the source image or source region dimensions. Note that the canvas and source region should have the same aspect ratio to avoid that the image to scan gets distorted which could make detecting QR codes impossible. By default, the canvas size is adapted to the scan region dimensions or down scaled scan region for single image scanning. |
 | `alsoTryWithoutScanRegion` | Request a second scan on the entire image if a `scanRegion` was provided and no QR code was found within that region. By default, no second scan is attempted. |
+| `returnDetailedScanResult` | Enforce reporting detailed scan results, see below. |
 
 To use the default value for an option, omit it or supply `undefined`.
+
+Returned results depend on whether an options object was provided:
+- If no options object was provided, the result is a string with the read QR code's content. The simple string return type is for backwards compatibility, is now deprecated and will be removed in the future.
+- If an options object was provided the result is an object with properties `data` which is the read QR code's string content and `cornerPoints` which are the corner points of the read QR code's outline on the camera stream.
+
+To avoid usage of the deprecated api if you're not supplying any other options, you can supply `{ returnDetailedScanResult: true }` to enable the new api and get the detailed scan result.
+
+If no QR code could be read, `scanImage` throws.
 
 ### Checking for Camera availability
 

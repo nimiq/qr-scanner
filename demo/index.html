@@ -16,14 +16,25 @@
     div {
         margin-bottom: 16px;
     }
+    #video-container {
+        position: relative;
+    }
+    #outline-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+    }
     #flash-toggle {
         display: none;
     }
 </style>
 <h1>Scan from WebCam:</h1>
 <div>
-    <video id="qr-video"></video>
-    <br>
+    <div id="video-container">
+        <video id="qr-video"></video>
+        <canvas id="outline-canvas"></canvas>
+    </div>
     <label>
         <input id="show-scan-region" type="checkbox">
         Show scan region
@@ -73,6 +84,8 @@
     QrScanner.WORKER_PATH = '../qr-scanner-worker.min.js';
 
     const video = document.getElementById('qr-video');
+    const outlineCanvas = document.getElementById('outline-canvas');
+    const outlineCanvasContext = outlineCanvas.getContext('2d');
     const camHasCamera = document.getElementById('cam-has-camera');
     const camList = document.getElementById('cam-list');
     const camHasFlash = document.getElementById('cam-has-flash');
@@ -84,14 +97,31 @@
     const fileQrResult = document.getElementById('file-qr-result');
 
     function setResult(label, result) {
-        label.textContent = result;
+        console.log(result.data);
+        label.textContent = result.data;
         camQrResultTimestamp.textContent = new Date().toString();
         label.style.color = 'teal';
         clearTimeout(label.highlightTimeout);
-        label.highlightTimeout = setTimeout(() => label.style.color = 'inherit', 100);
+        label.highlightTimeout = setTimeout(() => {
+            label.style.color = 'inherit';
+            outlineCanvasContext.clearRect(0, 0, outlineCanvas.width, outlineCanvas.height);
+        }, 100);
+        if (label === camQrResult) {
+            outlineCanvasContext.clearRect(0, 0, outlineCanvas.width, outlineCanvas.height);
+            outlineCanvasContext.beginPath();
+            outlineCanvasContext.moveTo(result.cornerPoints[0].x, result.cornerPoints[0].y);
+            outlineCanvasContext.lineTo(result.cornerPoints[1].x, result.cornerPoints[1].y);
+            outlineCanvasContext.lineTo(result.cornerPoints[2].x, result.cornerPoints[2].y);
+            outlineCanvasContext.lineTo(result.cornerPoints[3].x, result.cornerPoints[3].y);
+            outlineCanvasContext.closePath();
+            outlineCanvasContext.stroke();
+        }
     }
 
     // ####### Web Cam Scanning #######
+
+    outlineCanvasContext.strokeStyle = 'teal';
+    outlineCanvasContext.lineWidth = 5;
 
     const scanner = new QrScanner(video, result => setResult(camQrResult, result), {
         onDecodeError: error => {
@@ -106,6 +136,13 @@
             flashToggle.style.display = hasFlash ? 'inline-block' : 'none';
         });
     };
+
+    video.addEventListener('loadedmetadata', () => {
+        outlineCanvas.width = video.videoWidth;
+        outlineCanvas.height = video.videoHeight;
+        // copy the video's mirror
+        outlineCanvas.style.transform = video.style.transform;
+    });
 
     scanner.start().then(() => {
         updateFlashAvailability();
@@ -160,7 +197,7 @@
         if (!file) {
             return;
         }
-        QrScanner.scanImage(file)
+        QrScanner.scanImage(file, { returnDetailedScanResult: true })
             .then(result => setResult(fileQrResult, result))
             .catch(e => setResult(fileQrResult, e || 'No QR code found.'));
     });

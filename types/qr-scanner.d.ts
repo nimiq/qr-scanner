@@ -7,19 +7,22 @@ export default class QrScanner {
     static listCameras(requestLabels?: boolean): Promise<Array<QrScanner.Camera>>;
     $video: HTMLVideoElement;
     $canvas: HTMLCanvasElement;
-    private readonly _onDecode;
+    private readonly _onDecode?;
+    private readonly _legacyOnDecode?;
+    private readonly _legacyCanvasSize;
     private _preferredCamera;
     private _scanRegion;
-    private _legacyCanvasSize;
     private _qrEnginePromise;
     private _active;
     private _paused;
     private _flashOn;
     private _destroyed;
-    constructor(video: HTMLVideoElement, onDecode: (result: string) => void, options?: {
+    constructor(video: HTMLVideoElement, onDecode: (result: QrScanner.ScanResult) => void, options: {
         onDecodeError?: (error: Error | string) => void;
         calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion;
         preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId;
+        /** just a temporary flag until we switch entirely to the new api */
+        returnDetailedScanResult?: true;
     });
     /** @deprecated */
     constructor(video: HTMLVideoElement, onDecode: (result: string) => void, onDecodeError?: (error: Error | string) => void, calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion, preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId);
@@ -37,13 +40,15 @@ export default class QrScanner {
     stop(): void;
     pause(stopStreamImmediately?: boolean): Promise<boolean>;
     setCamera(facingModeOrDeviceId: QrScanner.FacingMode | QrScanner.DeviceId): Promise<void>;
-    static scanImage(imageOrFileOrBlobOrUrl: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap | SVGImageElement | File | Blob | URL | String, options?: {
+    static scanImage(imageOrFileOrBlobOrUrl: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap | SVGImageElement | File | Blob | URL | String, options: {
         scanRegion?: QrScanner.ScanRegion | null;
         qrEngine?: Worker | BarcodeDetector | Promise<Worker | BarcodeDetector> | null;
         canvas?: HTMLCanvasElement | null;
         disallowCanvasResizing?: boolean;
         alsoTryWithoutScanRegion?: boolean;
-    }): Promise<string>;
+        /** just a temporary flag until we switch entirely to the new api */
+        returnDetailedScanResult?: true;
+    }): Promise<QrScanner.ScanResult>;
     /** @deprecated */
     static scanImage(imageOrFileOrBlobOrUrl: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap | SVGImageElement | File | Blob | URL | String, scanRegion?: QrScanner.ScanRegion | null, qrEngine?: Worker | BarcodeDetector | Promise<Worker | BarcodeDetector> | null, canvas?: HTMLCanvasElement | null, disallowCanvasResizing?: boolean, alsoTryWithoutScanRegion?: boolean): Promise<string>;
     setGrayscaleWeights(red: number, green: number, blue: number, useIntegerApproximation?: boolean): void;
@@ -53,6 +58,7 @@ export default class QrScanner {
     private _onLoadedMetaData;
     private _onVisibilityChange;
     private _calculateScanRegion;
+    private static _convertPoints;
     private _scanFrame;
     private _onDecodeError;
     private _getCameraStream;
@@ -81,6 +87,14 @@ declare namespace QrScanner {
         label: string;
     }
     type InversionMode = 'original' | 'invert' | 'both';
+    interface Point {
+        x: number;
+        y: number;
+    }
+    interface ScanResult {
+        data: string;
+        cornerPoints: QrScanner.Point[];
+    }
 }
 declare class BarcodeDetector {
     constructor(options?: {
@@ -89,6 +103,7 @@ declare class BarcodeDetector {
     static getSupportedFormats(): Promise<string[]>;
     detect(image: ImageBitmapSource): Promise<Array<{
         rawValue: string;
+        cornerPoints: QrScanner.Point[];
     }>>;
 }
 export {};
