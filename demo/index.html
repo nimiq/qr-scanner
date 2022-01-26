@@ -151,6 +151,7 @@
 
     document.getElementById('scan-region-highlight-style-select').addEventListener('change', (e) => {
         videoContainer.className = e.target.value;
+        scanner._updateScanRegionHighlight(); // reposition the highlight because style 2 sets position: relative
     });
 
     document.getElementById('show-scan-region').addEventListener('change', (e) => {
@@ -209,9 +210,6 @@
     }
 
     #video-container {
-        position: relative;
-        width: max-content;
-        height: max-content;
         line-height: 0;
     }
 
@@ -232,6 +230,9 @@
     }
 
     #video-container.example-scan-region-highlight-style-2 {
+        position: relative;
+        width: max-content;
+        height: max-content;
         overflow: hidden;
     }
     #video-container.example-scan-region-highlight-style-2 .scan-region-highlight {

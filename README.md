@@ -6,7 +6,7 @@ In this library, several improvements have been applied over the original port:
 
 - Web cam scanning support out of the box
 - Uses the browser's native [BarcodeDetector](https://web.dev/shape-detection/) [if available](https://github.com/WICG/shape-detection-api#overview)
-- Lightweight: ~54.9 kB (~14.7 kB gzipped) minified with Google's closure compiler. If the native `BarcodeDetector` is available, only ~11.0 kB (~4.1 kB gzipped) are loaded.
+- Lightweight: ~56.9 kB (~15.3 kB gzipped) minified with Google's closure compiler. If the native `BarcodeDetector` is available, only ~13.0 kB (~4.7 kB gzipped) are loaded.
 - Improved performance and reduced memory footprint.
 - Runs in a WebWorker which keeps the main / UI thread responsive.
 - Can be configured for better performance on colored QR codes.
@@ -151,7 +151,7 @@ Supported options are:
 | `onDecodeError` | Handler to be invoked on decoding errors. The default is `QrScanner._onDecodeError`. |
 | `preferredCamera` | Preference for the camera to be used. The preference can be either a device id as returned by `listCameras` or a facing mode specified as `'environment'` or `'user'`. The default is `'environment'`. Note that there is no guarantee that the preference can actually be fulfilled. |
 | `calculateScanRegion` | A method that determines a region to which scanning should be restricted as a performance improvement. This region can optionally also be scaled down before performing the scan as an additional performance improvement. The region is specified as `x`, `y`, `width` and `height`; the dimensions for the downscaled region as `downScaledWidth` and `downScaledHeight`. Note that the aspect ratio between `width` and `height` and `downScaledWidth` and `downScaledHeight` should remain the same. By default, the scan region is restricted to a centered square of two thirds of the video width or height, whichever is smaller, and scaled down to a 400x400 square. |
-| `highlightScanRegion` | Set this option for rendering an outline around the the scan region on the video stream. This creates an absolutely positioned `div` that covers the scan region. This overlay can be accessed via `qrScanner.$scanRegionHighlight` and should be placed in the DOM as a sibling of `videoElem`. It can be custom styled via CSS, e.g. by setting an outline, border, background color, etc. See the [demo](https://nimiq.github.io/qr-scanner/demo/) for examples. For the overlay to be positioned correctly, the video's parent needs to match the video's size and be position `relative`, `absolute`, `fixed` or `sticky`. |
+| `highlightScanRegion` | Set this option for rendering an outline around the the scan region on the video stream. This creates an absolutely positioned `div` that covers the scan region. This overlay can be accessed via `qrScanner.$scanRegionHighlight` and should be placed in the DOM as a sibling of `videoElem`. It can be custom styled via CSS, e.g. by setting an outline, border, background color, etc. See the [demo](https://nimiq.github.io/qr-scanner/demo/) for examples. |
 | `returnDetailedScanResult` | Enforce reporting detailed scan results, see below. |
 
 To use the default value for an option, omit it or supply `undefined`.

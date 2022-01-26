@@ -149,12 +149,14 @@ export default class QrScanner {
             this.$scanRegionHighlight.style.display = 'none';
             // default style; can be overwritten via css
             this.$scanRegionHighlight.style.outline = 'rgba(255, 255, 255, .3) solid 7px';
+            this.$scanRegionHighlight.style.pointerEvents = 'none';
         }
         this._scanRegion = this._calculateScanRegion(video);
 
         this._onPlay = this._onPlay.bind(this);
         this._onLoadedMetaData = this._onLoadedMetaData.bind(this);
         this._onVisibilityChange = this._onVisibilityChange.bind(this);
+        this._updateScanRegionHighlight = this._updateScanRegionHighlight.bind(this);
 
         // @ts-ignore
         video.disablePictureInPicture = true;
@@ -181,7 +183,6 @@ export default class QrScanner {
         requestAnimationFrame(() => {
             // Checking in requestAnimationFrame which should avoid a potential additional re-flow for getComputedStyle.
             const videoStyle = window.getComputedStyle(video);
-            const containerStyle = window.getComputedStyle(videoContainer);
             if (videoStyle.display === 'none') {
                 video.style.setProperty('display', 'block', 'important');
                 shouldHideVideo = true;
@@ -201,28 +202,15 @@ export default class QrScanner {
             }
 
             if (this.$scanRegionHighlight) {
-                if (!['relative', 'absolute', 'fixed', 'sticky'].includes(containerStyle.position!)) {
-                    console.warn('QrScanner has overwritten the video parent\'s position for correct display of the '
-                        + 'scan region highlight. To avoid this, set the position to relative, absolute, fixed or '
-                        + 'sticky.');
-                    videoContainer.style.setProperty('position', 'absolute', 'important');
-                }
-                if (containerStyle.width !== videoStyle.width
-                    || containerStyle.height !== videoStyle.height) {
-                    console.warn('QrScanner has overwritten the video parent\'s width and height for correct display '
-                        + 'of the scan region highlight. To avoid this, make the parent as big as the video or the '
-                        + 'video as big as the parent.');
-                    videoContainer.style.setProperty('width', 'max-content', 'important');
-                    videoContainer.style.setProperty('height', 'max-content', 'important');
-                }
                 this._updateScanRegionHighlight();
-                videoContainer.appendChild(this.$scanRegionHighlight!);
+                videoContainer.appendChild(this.$scanRegionHighlight);
             }
         });
 
         video.addEventListener('play', this._onPlay);
         video.addEventListener('loadedmetadata', this._onLoadedMetaData);
         document.addEventListener('visibilitychange', this._onVisibilityChange);
+        window.addEventListener('resize', this._updateScanRegionHighlight);
 
         this._qrEnginePromise = QrScanner.createQrEngine();
     }
@@ -291,6 +279,7 @@ export default class QrScanner {
         this.$video.removeEventListener('loadedmetadata', this._onLoadedMetaData);
         this.$video.removeEventListener('play', this._onPlay);
         document.removeEventListener('visibilitychange', this._onVisibilityChange);
+        window.removeEventListener('resize', this._updateScanRegionHighlight);
 
         this._destroyed = true;
         this._flashOn = false;
@@ -595,18 +584,78 @@ export default class QrScanner {
     }
 
     private _updateScanRegionHighlight(): void {
-        if (!this.$scanRegionHighlight) return;
-        const video = this.$video;
-        const videoWidth = video.videoWidth;
-        const videoHeight = video.videoHeight;
+        requestAnimationFrame(() => {
+            // Running in requestAnimationFrame which should avoid a potential additional re-flow for getComputedStyle
+            // and offsetWidth, offsetHeight, offsetLeft, offsetTop.
+            if (!this.$scanRegionHighlight) return;
+            const video = this.$video;
+            const videoWidth = video.videoWidth;
+            const videoHeight = video.videoHeight;
+            const elementWidth = video.offsetWidth;
+            const elementHeight = video.offsetHeight;
+            const elementX = video.offsetLeft;
+            const elementY = video.offsetTop;
 
-        this.$scanRegionHighlight.style.width = `${(this._scanRegion.width || videoWidth) / videoWidth * 100}%`;
-        this.$scanRegionHighlight.style.height = `${(this._scanRegion.height || videoHeight) / videoHeight * 100}%`;
-        this.$scanRegionHighlight.style.top = `${(this._scanRegion.y || 0) / videoHeight * 100}%`;
-        const isVideoMirrored = /scaleX\(-1\)/.test(video.style.transform!);
-        this.$scanRegionHighlight.style[isVideoMirrored ? 'right' : 'left'] =
-            `${(this._scanRegion.x || 0) / videoWidth * 100}%`;
-        this.$scanRegionHighlight.style[isVideoMirrored ? 'left' : 'right'] = 'unset';
+            const videoStyle = window.getComputedStyle(video);
+            const videoObjectFit = videoStyle.objectFit;
+            const videoAspectRatio = videoWidth / videoHeight;
+            const elementAspectRatio = elementWidth / elementHeight;
+            let videoScaledWidth: number;
+            let videoScaledHeight: number;
+            switch (videoObjectFit) {
+                case 'none':
+                    videoScaledWidth = videoWidth;
+                    videoScaledHeight = videoHeight;
+                    break;
+                case 'fill':
+                    videoScaledWidth = elementWidth;
+                    videoScaledHeight = elementHeight;
+                    break;
+                default: // 'cover', 'contains', 'scale-down'
+                    if (videoObjectFit === 'cover'
+                        ? videoAspectRatio > elementAspectRatio
+                        : videoAspectRatio < elementAspectRatio) {
+                        // The scaled height is the element height
+                        // - for 'cover' if the video aspect ratio is wider than the element aspect ratio
+                        //   (scaled height matches element height and scaled width overflows element width)
+                        // - for 'contains'/'scale-down' if element aspect ratio is wider than the video aspect ratio
+                        //   (scaled height matched element height and element width overflows scaled width)
+                        videoScaledHeight = elementHeight;
+                        videoScaledWidth = videoScaledHeight * videoAspectRatio;
+                    } else {
+                        videoScaledWidth = elementWidth;
+                        videoScaledHeight = videoScaledWidth / videoAspectRatio;
+                    }
+                    if (videoObjectFit === 'scale-down') {
+                        // for 'scale-down' the dimensions are the minimum of 'contains' and 'none'
+                        videoScaledWidth = Math.min(videoScaledWidth, videoWidth);
+                        videoScaledHeight = Math.min(videoScaledHeight, videoHeight);
+                    }
+            }
+
+            // getComputedStyle is so nice to convert keywords (left, center, right, top, bottom) to percent and makes
+            // sure to set the default of 50% if only one or no component was provided, therefore we can be sure that
+            // both components are set. Additionally, it converts units other than px (e.g. rem) to px.
+            const [videoX, videoY] = videoStyle.objectPosition.split(' ').map((length, i) => {
+                const lengthValue = parseFloat(length);
+                return length.endsWith('%')
+                    ? (!i ? elementWidth - videoScaledWidth : elementHeight - videoScaledHeight) * lengthValue / 100
+                    : lengthValue;
+            });
+
+            const regionWidth = this._scanRegion.width || videoWidth;
+            const regionHeight = this._scanRegion.height || videoHeight;
+            const regionX = this._scanRegion.x || 0;
+            const regionY = this._scanRegion.y || 0;
+
+            this.$scanRegionHighlight.style.width = `${regionWidth / videoWidth * videoScaledWidth}px`;
+            this.$scanRegionHighlight.style.height = `${regionHeight / videoHeight * videoScaledHeight}px`;
+            this.$scanRegionHighlight.style.top = `${elementY + videoY + regionY / videoHeight * videoScaledHeight}px`;
+            const isVideoMirrored = /scaleX\(-1\)/.test(video.style.transform!);
+            this.$scanRegionHighlight.style.left = `${elementX
+                + (isVideoMirrored ? elementWidth - videoX - videoScaledWidth : videoX)
+                + (isVideoMirrored ? videoWidth - regionX - regionWidth : regionX) / videoWidth * videoScaledWidth}px`;
+        });
     }
 
     private static _convertPoints(
