@@ -5,39 +5,23 @@
     <title>QR Scanner Demo</title>
 </head>
 <body>
-<style>
-    hr {
-        margin-top: 32px;
-    }
-    input[type="file"] {
-        display: block;
-        margin-bottom: 16px;
-    }
-    div {
-        margin-bottom: 16px;
-    }
-    #video-container {
-        position: relative;
-    }
-    #outline-canvas {
-        position: absolute;
-        top: 0;
-        left: 0;
-        pointer-events: none;
-    }
-    #flash-toggle {
-        display: none;
-    }
-</style>
 <h1>Scan from WebCam:</h1>
+<div id="video-container" class="example-scan-region-highlight-style-1">
+    <video id="qr-video"></video>
+    <canvas id="outline-canvas"></canvas>
+</div>
 <div>
-    <div id="video-container">
-        <video id="qr-video"></video>
-        <canvas id="outline-canvas"></canvas>
-    </div>
+    <label>
+        Scan Region Highlight Style
+        <select id="scan-region-highlight-style-select">
+            <option value="example-scan-region-highlight-style-1">Example custom style 1</option>
+            <option value="example-scan-region-highlight-style-2">Example custom style 2</option>
+            <option value="default-scan-region-highlight-style">Default style</option>
+        </select>
+    </label>
     <label>
         <input id="show-scan-region" type="checkbox">
-        Show scan region
+        Show scan region canvas
     </label>
 </div>
 <div>
@@ -84,6 +68,7 @@
     QrScanner.WORKER_PATH = '../qr-scanner-worker.min.js';
 
     const video = document.getElementById('qr-video');
+    const videoContainer = document.getElementById('video-container');
     const outlineCanvas = document.getElementById('outline-canvas');
     const outlineCanvasContext = outlineCanvas.getContext('2d');
     const camHasCamera = document.getElementById('cam-has-camera');
@@ -164,6 +149,10 @@
     // for debugging
     window.scanner = scanner;
 
+    document.getElementById('scan-region-highlight-style-select').addEventListener('change', (e) => {
+        videoContainer.className = e.target.value;
+    });
+
     document.getElementById('show-scan-region').addEventListener('change', (e) => {
         const input = e.target;
         const label = input.parentNode;
@@ -191,6 +180,16 @@
         scanner.stop();
     });
 
+    // example for a custom scan region highlight style with an svg image
+    const scanRegionHighlightSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    scanRegionHighlightSvg.setAttribute('viewBox', '0 0 238 238');
+    scanRegionHighlightSvg.setAttribute('preserveAspectRatio', 'none');
+    scanRegionHighlightSvg.classList.add('scan-region-highlight-svg');
+    scanRegionHighlightSvg.innerHTML = `<path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#e9b213" stroke-width="4"
+        d="M31.3 2H10a8 8 0 0 0-8 8v21.3M206.8 2H228a8 8 0 0 1 8 8v21.3m0 175.4V228a8 8 0 0 1-8 8h-21.3m-175.4 0H10a8 8 0 0 1-8-8v-21.3">
+    </path>`;
+    scanner.$scanRegionHighlight.appendChild(scanRegionHighlightSvg);
+
     // ####### File Scanning #######
 
     fileSelector.addEventListener('change', event => {
@@ -202,7 +201,62 @@
             .then(result => setResult(fileQrResult, result))
             .catch(e => setResult(fileQrResult, e || 'No QR code found.'));
     });
-
 </script>
+
+<style>
+    div {
+        margin-bottom: 16px;
+    }
+
+    #video-container {
+        position: relative;
+        width: max-content;
+        height: max-content;
+        line-height: 0;
+    }
+
+    #video-container:not(.example-scan-region-highlight-style-1) .scan-region-highlight-svg {
+        display: none;
+    }
+    #video-container.example-scan-region-highlight-style-1 .scan-region-highlight {
+        outline: none !important;
+    }
+    #video-container.example-scan-region-highlight-style-1 .scan-region-highlight-svg {
+        width: 100%;
+        height: 100%;
+        animation: example-scan-region-highlight-style-1-animation .4s infinite alternate ease-in-out;
+    }
+    @keyframes example-scan-region-highlight-style-1-animation {
+        from { transform: scale(.98); }
+        to { transform: scale(1.01); }
+    }
+
+    #video-container.example-scan-region-highlight-style-2 {
+        overflow: hidden;
+    }
+    #video-container.example-scan-region-highlight-style-2 .scan-region-highlight {
+        border-radius: 30px;
+        outline: rgba(0, 0, 0, .25) solid 50vmax !important;
+    }
+
+    #outline-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+    }
+
+    #flash-toggle {
+        display: none;
+    }
+
+    hr {
+        margin-top: 32px;
+    }
+    input[type="file"] {
+        display: block;
+        margin-bottom: 16px;
+    }
+</style>
 </body>
 </html>
