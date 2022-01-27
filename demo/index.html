@@ -126,7 +126,7 @@
 
     document.getElementById('scan-region-highlight-style-select').addEventListener('change', (e) => {
         videoContainer.className = e.target.value;
-        scanner._updateHighlightOverlay(); // reposition the highlight because style 2 sets position: relative
+        scanner._updateOverlay(); // reposition the highlight because style 2 sets position: relative
     });
 
     document.getElementById('show-scan-region').addEventListener('change', (e) => {
@@ -164,7 +164,7 @@
     scanRegionHighlightSvg.innerHTML = `<path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#e9b213" stroke-width="4"
         d="M31.3 2H10a8 8 0 0 0-8 8v21.3M206.8 2H228a8 8 0 0 1 8 8v21.3m0 175.4V228a8 8 0 0 1-8 8h-21.3m-175.4 0H10a8 8 0 0 1-8-8v-21.3">
     </path>`;
-    scanner.$highlightOverlay.appendChild(scanRegionHighlightSvg);
+    scanner.$overlay.appendChild(scanRegionHighlightSvg);
 
     // ####### File Scanning #######
 
