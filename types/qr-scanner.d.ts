@@ -7,12 +7,14 @@ export default class QrScanner {
     static listCameras(requestLabels?: boolean): Promise<Array<QrScanner.Camera>>;
     readonly $video: HTMLVideoElement;
     readonly $canvas: HTMLCanvasElement;
-    readonly $scanRegionHighlight?: HTMLDivElement;
+    readonly $highlightOverlay?: HTMLDivElement;
+    private readonly $codeOutlineHighlight?;
     private readonly _onDecode?;
     private readonly _legacyOnDecode?;
     private readonly _legacyCanvasSize;
     private _preferredCamera;
     private _scanRegion;
+    private _codeOutlineHighlightRemovalTimeout?;
     private _qrEnginePromise;
     private _active;
     private _paused;
@@ -23,6 +25,7 @@ export default class QrScanner {
         calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion;
         preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId;
         highlightScanRegion?: boolean;
+        highlightCodeOutline?: boolean;
         /** just a temporary flag until we switch entirely to the new api */
         returnDetailedScanResult?: true;
     });
@@ -60,7 +63,7 @@ export default class QrScanner {
     private _onLoadedMetaData;
     private _onVisibilityChange;
     private _calculateScanRegion;
-    private _updateScanRegionHighlight;
+    private _updateHighlightOverlay;
     private static _convertPoints;
     private _scanFrame;
     private _onDecodeError;

@@ -48,12 +48,14 @@ export default class QrScanner {
 
     readonly $video: HTMLVideoElement;
     readonly $canvas: HTMLCanvasElement;
-    readonly $scanRegionHighlight?: HTMLDivElement;
+    readonly $highlightOverlay?: HTMLDivElement;
+    private readonly $codeOutlineHighlight?: SVGSVGElement;
     private readonly _onDecode?: (result: QrScanner.ScanResult) => void;
     private readonly _legacyOnDecode?: (result: string) => void;
     private readonly _legacyCanvasSize: number = QrScanner.DEFAULT_CANVAS_SIZE;
     private _preferredCamera: QrScanner.FacingMode | QrScanner.DeviceId = 'environment';
     private _scanRegion: QrScanner.ScanRegion;
+    private _codeOutlineHighlightRemovalTimeout?: number;
     private _qrEnginePromise: Promise<Worker | BarcodeDetector>
     private _active: boolean = false;
     private _paused: boolean = false;
@@ -68,6 +70,7 @@ export default class QrScanner {
             calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion,
             preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
             highlightScanRegion?: boolean,
+            highlightCodeOutline?: boolean,
             /** just a temporary flag until we switch entirely to the new api */
             returnDetailedScanResult?: true,
         },
@@ -98,6 +101,7 @@ export default class QrScanner {
             calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion,
             preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
             highlightScanRegion?: boolean,
+            highlightCodeOutline?: boolean,
             /** just a temporary flag until we switch entirely to the new api */
             returnDetailedScanResult?: true,
         },
@@ -142,21 +146,41 @@ export default class QrScanner {
                 ? canvasSizeOrCalculateScanRegion
                 : this._legacyCanvasSize;
 
-        if (options.highlightScanRegion) {
-            this.$scanRegionHighlight = document.createElement('div');
-            this.$scanRegionHighlight.classList.add('scan-region-highlight');
-            this.$scanRegionHighlight.style.position = 'absolute';
-            this.$scanRegionHighlight.style.display = 'none';
-            // default style; can be overwritten via css
-            this.$scanRegionHighlight.style.outline = 'rgba(255, 255, 255, .3) solid 7px';
-            this.$scanRegionHighlight.style.pointerEvents = 'none';
+        if (options.highlightScanRegion || options.highlightCodeOutline) {
+            this.$highlightOverlay = document.createElement('div');
+            const highlightOverlayStyle = this.$highlightOverlay.style;
+            highlightOverlayStyle.position = 'absolute';
+            highlightOverlayStyle.display = 'none';
+            highlightOverlayStyle.pointerEvents = 'none';
+            if (options.highlightScanRegion) {
+                // default style; can be overwritten via css
+                this.$highlightOverlay.classList.add('scan-region-highlight');
+                highlightOverlayStyle.outline = '#e9b213 solid 5px';
+            }
+            if (options.highlightCodeOutline) {
+                this.$codeOutlineHighlight = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                this.$codeOutlineHighlight.appendChild(polygon);
+                this.$highlightOverlay.appendChild(this.$codeOutlineHighlight);
+                const codeOutlineHighlightStyle = this.$codeOutlineHighlight.style;
+                codeOutlineHighlightStyle.width = '100%';
+                codeOutlineHighlightStyle.height = '100%';
+                // to support distorted videos, e.g. via object-fit: fill
+                this.$codeOutlineHighlight.setAttribute('preserveAspectRatio', 'none');
+                codeOutlineHighlightStyle.display = 'none';
+                // default style; can be overwritten via css
+                this.$codeOutlineHighlight.classList.add('code-outline-highlight');
+                codeOutlineHighlightStyle.fill = 'none';
+                codeOutlineHighlightStyle.stroke = '#e9b213';
+                codeOutlineHighlightStyle.strokeWidth = '4';
+            }
         }
         this._scanRegion = this._calculateScanRegion(video);
 
         this._onPlay = this._onPlay.bind(this);
         this._onLoadedMetaData = this._onLoadedMetaData.bind(this);
         this._onVisibilityChange = this._onVisibilityChange.bind(this);
-        this._updateScanRegionHighlight = this._updateScanRegionHighlight.bind(this);
+        this._updateHighlightOverlay = this._updateHighlightOverlay.bind(this);
 
         // @ts-ignore
         video.disablePictureInPicture = true;
@@ -198,19 +222,21 @@ export default class QrScanner {
                 video.style.width = '0';
                 video.style.height = '0';
                 // @ts-ignore
-                delete this.$scanRegionHighlight!;
+                delete this.$highlightOverlay!;
+                // @ts-ignore
+                delete this.$codeOutlineHighlight!;
             }
 
-            if (this.$scanRegionHighlight) {
-                this._updateScanRegionHighlight();
-                videoContainer.appendChild(this.$scanRegionHighlight);
+            if (this.$highlightOverlay) {
+                this._updateHighlightOverlay();
+                videoContainer.appendChild(this.$highlightOverlay);
             }
         });
 
         video.addEventListener('play', this._onPlay);
         video.addEventListener('loadedmetadata', this._onLoadedMetaData);
         document.addEventListener('visibilitychange', this._onVisibilityChange);
-        window.addEventListener('resize', this._updateScanRegionHighlight);
+        window.addEventListener('resize', this._updateHighlightOverlay);
 
         this._qrEnginePromise = QrScanner.createQrEngine();
     }
@@ -279,7 +305,7 @@ export default class QrScanner {
         this.$video.removeEventListener('loadedmetadata', this._onLoadedMetaData);
         this.$video.removeEventListener('play', this._onPlay);
         document.removeEventListener('visibilitychange', this._onVisibilityChange);
-        window.removeEventListener('resize', this._updateScanRegionHighlight);
+        window.removeEventListener('resize', this._updateHighlightOverlay);
 
         this._destroyed = true;
         this._flashOn = false;
@@ -337,8 +363,8 @@ export default class QrScanner {
         if (!this._active) return true;
         this.$video.pause();
 
-        if (this.$scanRegionHighlight) {
-            this.$scanRegionHighlight.style.display = 'none';
+        if (this.$highlightOverlay) {
+            this.$highlightOverlay.style.display = 'none';
         }
 
         const stopStream = () => {
@@ -549,16 +575,16 @@ export default class QrScanner {
 
     private _onPlay(): void {
         this._scanRegion = this._calculateScanRegion(this.$video);
-        this._updateScanRegionHighlight();
-        if (this.$scanRegionHighlight) {
-            this.$scanRegionHighlight.style.display = '';
+        this._updateHighlightOverlay();
+        if (this.$highlightOverlay) {
+            this.$highlightOverlay.style.display = '';
         }
         this._scanFrame();
     }
 
     private _onLoadedMetaData(): void {
         this._scanRegion = this._calculateScanRegion(this.$video);
-        this._updateScanRegionHighlight();
+        this._updateHighlightOverlay();
     }
 
     private _onVisibilityChange(): void {
@@ -583,11 +609,11 @@ export default class QrScanner {
         };
     }
 
-    private _updateScanRegionHighlight(): void {
+    private _updateHighlightOverlay(): void {
         requestAnimationFrame(() => {
             // Running in requestAnimationFrame which should avoid a potential additional re-flow for getComputedStyle
             // and offsetWidth, offsetHeight, offsetLeft, offsetTop.
-            if (!this.$scanRegionHighlight) return;
+            if (!this.$highlightOverlay) return;
             const video = this.$video;
             const videoWidth = video.videoWidth;
             const videoHeight = video.videoHeight;
@@ -648,13 +674,16 @@ export default class QrScanner {
             const regionX = this._scanRegion.x || 0;
             const regionY = this._scanRegion.y || 0;
 
-            this.$scanRegionHighlight.style.width = `${regionWidth / videoWidth * videoScaledWidth}px`;
-            this.$scanRegionHighlight.style.height = `${regionHeight / videoHeight * videoScaledHeight}px`;
-            this.$scanRegionHighlight.style.top = `${elementY + videoY + regionY / videoHeight * videoScaledHeight}px`;
+            const highlightOverlayStyle = this.$highlightOverlay.style;
+            highlightOverlayStyle.width = `${regionWidth / videoWidth * videoScaledWidth}px`;
+            highlightOverlayStyle.height = `${regionHeight / videoHeight * videoScaledHeight}px`;
+            highlightOverlayStyle.top = `${elementY + videoY + regionY / videoHeight * videoScaledHeight}px`;
             const isVideoMirrored = /scaleX\(-1\)/.test(video.style.transform!);
-            this.$scanRegionHighlight.style.left = `${elementX
+            highlightOverlayStyle.left = `${elementX
                 + (isVideoMirrored ? elementWidth - videoX - videoScaledWidth : videoX)
                 + (isVideoMirrored ? videoWidth - regionX - regionWidth : regionX) / videoWidth * videoScaledWidth}px`;
+            // apply same mirror as on video
+            highlightOverlayStyle.transform = video.style.transform;
         });
     }
 
@@ -708,10 +737,33 @@ export default class QrScanner {
                 this._onDecodeError(error as Error | string);
             }
 
-            if (result && this._onDecode) {
-                this._onDecode(result);
-            } else if (result && this._legacyOnDecode) {
-                this._legacyOnDecode(result.data);
+            if (result) {
+                if (this._onDecode) {
+                    this._onDecode(result);
+                } else if (this._legacyOnDecode) {
+                    this._legacyOnDecode(result.data);
+                }
+
+                if (this.$codeOutlineHighlight) {
+                    clearTimeout(this._codeOutlineHighlightRemovalTimeout);
+                    this._codeOutlineHighlightRemovalTimeout = undefined;
+                    this.$codeOutlineHighlight.setAttribute(
+                        'viewBox',
+                        `${this._scanRegion.x || 0} `
+                            + `${this._scanRegion.y || 0} `
+                            + `${this._scanRegion.width || this.$video.videoWidth} `
+                            + `${this._scanRegion.height || this.$video.videoHeight}`,
+                    );
+                    const polygon = this.$codeOutlineHighlight.firstElementChild!;
+                    polygon.setAttribute('points', result.cornerPoints.map(({x, y}) => `${x},${y}`).join(' '));
+                    this.$codeOutlineHighlight.style.display = '';
+                }
+            } else if (this.$codeOutlineHighlight && !this._codeOutlineHighlightRemovalTimeout) {
+                // hide after timeout to make it flash less when on some frames the QR code is detected and on some not
+                this._codeOutlineHighlightRemovalTimeout = setTimeout(
+                    () => this.$codeOutlineHighlight!.style.display = 'none',
+                    100,
+                );
             }
 
             this._scanFrame();

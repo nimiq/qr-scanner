@@ -6,17 +6,16 @@
 </head>
 <body>
 <h1>Scan from WebCam:</h1>
-<div id="video-container" class="example-scan-region-highlight-style-1">
+<div id="video-container" class="example-style-1">
     <video id="qr-video"></video>
-    <canvas id="outline-canvas"></canvas>
 </div>
 <div>
     <label>
-        Scan Region Highlight Style
+        Highlight Style
         <select id="scan-region-highlight-style-select">
-            <option value="example-scan-region-highlight-style-1">Example custom style 1</option>
-            <option value="example-scan-region-highlight-style-2">Example custom style 2</option>
-            <option value="default-scan-region-highlight-style">Default style</option>
+            <option value="example-style-1">Example custom style 1</option>
+            <option value="example-style-2">Example custom style 2</option>
+            <option value="default-style">Default style</option>
         </select>
     </label>
     <label>
@@ -69,8 +68,6 @@
 
     const video = document.getElementById('qr-video');
     const videoContainer = document.getElementById('video-container');
-    const outlineCanvas = document.getElementById('outline-canvas');
-    const outlineCanvasContext = outlineCanvas.getContext('2d');
     const camHasCamera = document.getElementById('cam-has-camera');
     const camList = document.getElementById('cam-list');
     const camHasFlash = document.getElementById('cam-has-flash');
@@ -87,26 +84,10 @@
         camQrResultTimestamp.textContent = new Date().toString();
         label.style.color = 'teal';
         clearTimeout(label.highlightTimeout);
-        label.highlightTimeout = setTimeout(() => {
-            label.style.color = 'inherit';
-            outlineCanvasContext.clearRect(0, 0, outlineCanvas.width, outlineCanvas.height);
-        }, 100);
-        if (label === camQrResult) {
-            outlineCanvasContext.clearRect(0, 0, outlineCanvas.width, outlineCanvas.height);
-            outlineCanvasContext.beginPath();
-            outlineCanvasContext.moveTo(result.cornerPoints[0].x, result.cornerPoints[0].y);
-            outlineCanvasContext.lineTo(result.cornerPoints[1].x, result.cornerPoints[1].y);
-            outlineCanvasContext.lineTo(result.cornerPoints[2].x, result.cornerPoints[2].y);
-            outlineCanvasContext.lineTo(result.cornerPoints[3].x, result.cornerPoints[3].y);
-            outlineCanvasContext.closePath();
-            outlineCanvasContext.stroke();
-        }
+        label.highlightTimeout = setTimeout(() => label.style.color = 'inherit', 100);
     }
 
     // ####### Web Cam Scanning #######
-
-    outlineCanvasContext.strokeStyle = 'teal';
-    outlineCanvasContext.lineWidth = 5;
 
     const scanner = new QrScanner(video, result => setResult(camQrResult, result), {
         onDecodeError: error => {
@@ -114,6 +95,7 @@
             camQrResult.style.color = 'inherit';
         },
         highlightScanRegion: true,
+        highlightCodeOutline: true,
     });
 
     const updateFlashAvailability = () => {
@@ -122,13 +104,6 @@
             flashToggle.style.display = hasFlash ? 'inline-block' : 'none';
         });
     };
-
-    video.addEventListener('loadedmetadata', () => {
-        outlineCanvas.width = video.videoWidth;
-        outlineCanvas.height = video.videoHeight;
-        // copy the video's mirror
-        outlineCanvas.style.transform = video.style.transform;
-    });
 
     scanner.start().then(() => {
         updateFlashAvailability();
@@ -151,7 +126,7 @@
 
     document.getElementById('scan-region-highlight-style-select').addEventListener('change', (e) => {
         videoContainer.className = e.target.value;
-        scanner._updateScanRegionHighlight(); // reposition the highlight because style 2 sets position: relative
+        scanner._updateHighlightOverlay(); // reposition the highlight because style 2 sets position: relative
     });
 
     document.getElementById('show-scan-region').addEventListener('change', (e) => {
@@ -189,7 +164,7 @@
     scanRegionHighlightSvg.innerHTML = `<path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#e9b213" stroke-width="4"
         d="M31.3 2H10a8 8 0 0 0-8 8v21.3M206.8 2H228a8 8 0 0 1 8 8v21.3m0 175.4V228a8 8 0 0 1-8 8h-21.3m-175.4 0H10a8 8 0 0 1-8-8v-21.3">
     </path>`;
-    scanner.$scanRegionHighlight.appendChild(scanRegionHighlightSvg);
+    scanner.$highlightOverlay.appendChild(scanRegionHighlightSvg);
 
     // ####### File Scanning #######
 
@@ -213,38 +188,46 @@
         line-height: 0;
     }
 
-    #video-container:not(.example-scan-region-highlight-style-1) .scan-region-highlight-svg {
+    #video-container:not(.example-style-1) .scan-region-highlight-svg,
+    #video-container.example-style-1 :not(.scan-region-highlight) .scan-region-highlight-svg {
         display: none;
     }
-    #video-container.example-scan-region-highlight-style-1 .scan-region-highlight {
+    #video-container.example-style-1 .scan-region-highlight {
         outline: none !important;
     }
-    #video-container.example-scan-region-highlight-style-1 .scan-region-highlight-svg {
+    #video-container.example-style-1 .scan-region-highlight .scan-region-highlight-svg {
+        position: absolute;
         width: 100%;
         height: 100%;
-        animation: example-scan-region-highlight-style-1-animation .4s infinite alternate ease-in-out;
+        left: 0;
+        top: 0;
+        animation: example-style-1-animation .4s infinite alternate ease-in-out;
     }
-    @keyframes example-scan-region-highlight-style-1-animation {
+    @keyframes example-style-1-animation {
         from { transform: scale(.98); }
         to { transform: scale(1.01); }
     }
+    #video-container.example-style-1 .code-outline-highlight {
+        stroke-width: 5 !important;
+        stroke-dasharray: 25;
+        stroke-linejoin: round;
+        stroke-linecap: round;
+    }
 
-    #video-container.example-scan-region-highlight-style-2 {
+    #video-container.example-style-2 {
         position: relative;
         width: max-content;
         height: max-content;
         overflow: hidden;
     }
-    #video-container.example-scan-region-highlight-style-2 .scan-region-highlight {
+    #video-container.example-style-2 .scan-region-highlight {
         border-radius: 30px;
         outline: rgba(0, 0, 0, .25) solid 50vmax !important;
     }
-
-    #outline-canvas {
-        position: absolute;
-        top: 0;
-        left: 0;
-        pointer-events: none;
+    #video-container.example-style-2 .code-outline-highlight {
+        stroke: rgba(255, 255, 255, .5) !important;
+        stroke-width: 15 !important;
+        stroke-linejoin: round;
     }
 
     #flash-toggle {
