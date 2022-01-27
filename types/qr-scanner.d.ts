@@ -13,6 +13,8 @@ export default class QrScanner {
     private readonly _legacyOnDecode?;
     private readonly _legacyCanvasSize;
     private _preferredCamera;
+    private readonly _maxScansPerSecond;
+    private _lastScanTimestamp;
     private _scanRegion;
     private _codeOutlineHighlightRemovalTimeout?;
     private _qrEnginePromise;
@@ -24,6 +26,7 @@ export default class QrScanner {
         onDecodeError?: (error: Error | string) => void;
         calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion;
         preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId;
+        maxScansPerSecond?: number;
         highlightScanRegion?: boolean;
         highlightCodeOutline?: boolean;
         overlay?: HTMLDivElement;

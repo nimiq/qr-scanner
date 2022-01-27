@@ -54,6 +54,8 @@ export default class QrScanner {
     private readonly _legacyOnDecode?: (result: string) => void;
     private readonly _legacyCanvasSize: number = QrScanner.DEFAULT_CANVAS_SIZE;
     private _preferredCamera: QrScanner.FacingMode | QrScanner.DeviceId = 'environment';
+    private readonly _maxScansPerSecond: number = 25;
+    private _lastScanTimestamp: number = -1;
     private _scanRegion: QrScanner.ScanRegion;
     private _codeOutlineHighlightRemovalTimeout?: number;
     private _qrEnginePromise: Promise<Worker | BarcodeDetector>
@@ -69,6 +71,7 @@ export default class QrScanner {
             onDecodeError?: (error: Error | string) => void,
             calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion,
             preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
+            maxScansPerSecond?: number;
             highlightScanRegion?: boolean,
             highlightCodeOutline?: boolean,
             overlay?: HTMLDivElement,
@@ -101,6 +104,7 @@ export default class QrScanner {
             onDecodeError?: (error: Error | string) => void,
             calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion,
             preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
+            maxScansPerSecond?: number;
             highlightScanRegion?: boolean,
             highlightCodeOutline?: boolean,
             overlay?: HTMLDivElement,
@@ -147,6 +151,7 @@ export default class QrScanner {
             : typeof canvasSizeOrCalculateScanRegion === 'number'
                 ? canvasSizeOrCalculateScanRegion
                 : this._legacyCanvasSize;
+        this._maxScansPerSecond = options.maxScansPerSecond || this._maxScansPerSecond;
 
         this._onPlay = this._onPlay.bind(this);
         this._onLoadedMetaData = this._onLoadedMetaData.bind(this);
@@ -726,6 +731,13 @@ export default class QrScanner {
                 this._scanFrame();
                 return;
             }
+
+            const timeSinceLastScan = Date.now() - this._lastScanTimestamp;
+            const minimumTimeBetweenScans = 1000 / this._maxScansPerSecond;
+            if (timeSinceLastScan < minimumTimeBetweenScans) {
+                await new Promise((resolve) => setTimeout(resolve, minimumTimeBetweenScans - timeSinceLastScan));
+            }
+            this._lastScanTimestamp = Date.now();
 
             let result: QrScanner.ScanResult | undefined;
             try {
