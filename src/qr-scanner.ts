@@ -721,8 +721,15 @@ export default class QrScanner {
 
     private _scanFrame(): void {
         if (!this._active || this.$video.paused || this.$video.ended) return;
-        // using requestAnimationFrame to avoid scanning if tab is in background
-        requestAnimationFrame(async () => {
+        // If requestVideoFrameCallback is available use that to avoid unnecessary scans on the same frame as the
+        // camera's framerate can be lower than the screen refresh rate and this._maxScansPerSecond, especially in dark
+        // settings where the exposure time is longer. Both, requestVideoFrameCallback and requestAnimationFrame are not
+        // being fired if the tab is in the background, which is what we want.
+        const requestFrame = 'requestVideoFrameCallback' in this.$video
+            // @ts-ignore
+            ? this.$video.requestVideoFrameCallback.bind(this.$video)
+            : requestAnimationFrame;
+        requestFrame(async () => {
             if (this.$video.readyState <= 1) {
                 // Skip scans until the video is ready as drawImage() only works correctly on a video with readyState
                 // > 1, see https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/drawImage#Notes.
@@ -737,6 +744,7 @@ export default class QrScanner {
             if (timeSinceLastScan < minimumTimeBetweenScans) {
                 await new Promise((resolve) => setTimeout(resolve, minimumTimeBetweenScans - timeSinceLastScan));
             }
+            // console.log('Scan rate:', Math.round(1000 / (Date.now() - this._lastScanTimestamp)));
             this._lastScanTimestamp = Date.now();
 
             let result: QrScanner.ScanResult | undefined;
