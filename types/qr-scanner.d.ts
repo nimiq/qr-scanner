@@ -3,6 +3,7 @@ export default class QrScanner {
     static readonly DEFAULT_CANVAS_SIZE = 400;
     static readonly NO_QR_CODE_FOUND = "No QR code found";
     static WORKER_PATH: string;
+    private static _disableBarcodeDetector;
     static hasCamera(): Promise<boolean>;
     static listCameras(requestLabels?: boolean): Promise<Array<QrScanner.Camera>>;
     readonly $video: HTMLVideoElement;
