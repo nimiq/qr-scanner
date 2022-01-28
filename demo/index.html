@@ -6,16 +6,16 @@
 </head>
 <body>
 <h1>Scan from WebCam:</h1>
-<div id="video-container" class="example-style-1">
+<div id="video-container">
     <video id="qr-video"></video>
 </div>
 <div>
     <label>
         Highlight Style
         <select id="scan-region-highlight-style-select">
+            <option value="default-style">Default style</option>
             <option value="example-style-1">Example custom style 1</option>
             <option value="example-style-2">Example custom style 2</option>
-            <option value="default-style">Default style</option>
         </select>
     </label>
     <label>
@@ -156,16 +156,6 @@
         scanner.stop();
     });
 
-    // example for a custom scan region highlight style with an svg image
-    const scanRegionHighlightSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    scanRegionHighlightSvg.setAttribute('viewBox', '0 0 238 238');
-    scanRegionHighlightSvg.setAttribute('preserveAspectRatio', 'none');
-    scanRegionHighlightSvg.classList.add('scan-region-highlight-svg');
-    scanRegionHighlightSvg.innerHTML = `<path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#e9b213" stroke-width="4"
-        d="M31.3 2H10a8 8 0 0 0-8 8v21.3M206.8 2H228a8 8 0 0 1 8 8v21.3m0 175.4V228a8 8 0 0 1-8 8h-21.3m-175.4 0H10a8 8 0 0 1-8-8v-21.3">
-    </path>`;
-    scanner.$overlay.appendChild(scanRegionHighlightSvg);
-
     // ####### File Scanning #######
 
     fileSelector.addEventListener('change', event => {
@@ -188,30 +178,9 @@
         line-height: 0;
     }
 
-    #video-container:not(.example-style-1) .scan-region-highlight-svg,
-    #video-container.example-style-1 :not(.scan-region-highlight) .scan-region-highlight-svg {
-        display: none;
-    }
-    #video-container.example-style-1 .scan-region-highlight {
-        outline: none !important;
-    }
-    #video-container.example-style-1 .scan-region-highlight .scan-region-highlight-svg {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        left: 0;
-        top: 0;
-        animation: example-style-1-animation .4s infinite alternate ease-in-out;
-    }
-    @keyframes example-style-1-animation {
-        from { transform: scale(.98); }
-        to { transform: scale(1.01); }
-    }
+    #video-container.example-style-1 .scan-region-highlight-svg,
     #video-container.example-style-1 .code-outline-highlight {
-        stroke-width: 5 !important;
-        stroke-dasharray: 25;
-        stroke-linejoin: round;
-        stroke-linecap: round;
+        stroke: #64a2f3 !important;
     }
 
     #video-container.example-style-2 {
@@ -222,12 +191,15 @@
     }
     #video-container.example-style-2 .scan-region-highlight {
         border-radius: 30px;
-        outline: rgba(0, 0, 0, .25) solid 50vmax !important;
+        outline: rgba(0, 0, 0, .25) solid 50vmax;
+    }
+    #video-container.example-style-2 .scan-region-highlight-svg {
+        display: none;
     }
     #video-container.example-style-2 .code-outline-highlight {
         stroke: rgba(255, 255, 255, .5) !important;
         stroke-width: 15 !important;
-        stroke-linejoin: round;
+        stroke-dasharray: none !important;
     }
 
     #flash-toggle {

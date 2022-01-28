@@ -191,26 +191,32 @@ export default class QrScanner {
             overlayStyle.pointerEvents = 'none';
             this.$overlay.classList.add('scan-region-highlight');
             if (!gotExternalOverlay && options.highlightScanRegion) {
-                // default style; can be overwritten via css
-                overlayStyle.outline = '#e9b213 solid 5px';
+                // default style; can be overwritten via css, e.g. by changing the svg's stroke color, hiding the
+                // .scan-region-highlight-svg, setting a border, outline, background, etc.
+                this.$overlay.innerHTML = '<svg class="scan-region-highlight-svg" viewBox="0 0 238 238" '
+                    + 'preserveAspectRatio="none" style="position:absolute;width:100%;height:100%;left:0;top:0;'
+                    + 'fill:none;stroke:#e9b213;stroke-width:4;stroke-linecap:round;stroke-linejoin:round">'
+                    + '<path d="M31 2H10a8 8 0 0 0-8 8v21M207 2h21a8 8 0 0 1 8 8v21m0 176v21a8 8 0 0 1-8 8h-21m-176 '
+                    + '0H10a8 8 0 0 1-8-8v-21"/></svg>';
+                try {
+                    this.$overlay.firstElementChild!.animate({ transform: ['scale(.98)', 'scale(1.01)'] }, {
+                        duration: 400,
+                        iterations: Infinity,
+                        direction: 'alternate',
+                        easing: 'ease-in-out',
+                    });
+                } catch (e) {}
                 videoContainer.insertBefore(this.$overlay, this.$video.nextSibling);
             }
             if (options.highlightCodeOutline) {
-                this.$codeOutlineHighlight = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-                this.$codeOutlineHighlight.appendChild(polygon);
-                this.$overlay.appendChild(this.$codeOutlineHighlight);
-                const codeOutlineHighlightStyle = this.$codeOutlineHighlight.style;
-                codeOutlineHighlightStyle.width = '100%';
-                codeOutlineHighlightStyle.height = '100%';
-                // to support distorted videos, e.g. via object-fit: fill
-                this.$codeOutlineHighlight.setAttribute('preserveAspectRatio', 'none');
-                codeOutlineHighlightStyle.display = 'none';
-                this.$codeOutlineHighlight.classList.add('code-outline-highlight');
                 // default style; can be overwritten via css
-                codeOutlineHighlightStyle.fill = 'none';
-                codeOutlineHighlightStyle.stroke = '#e9b213';
-                codeOutlineHighlightStyle.strokeWidth = '4';
+                this.$overlay.insertAdjacentHTML(
+                    'beforeend',
+                    '<svg class="code-outline-highlight" preserveAspectRatio="none" style="display:none;width:100%;'
+                        + 'height:100%;fill:none;stroke:#e9b213;stroke-width:5;stroke-dasharray:25;'
+                        + 'stroke-linecap:round;stroke-linejoin:round"><polygon/></svg>',
+                );
+                this.$codeOutlineHighlight = this.$overlay.lastElementChild as SVGSVGElement;
             }
         }
         this._scanRegion = this._calculateScanRegion(video);
