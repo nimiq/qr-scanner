@@ -37,11 +37,9 @@ Or simply copy `qr-scanner.min.js` and `qr-scanner-worker.min.js` to your projec
 
 ## Setup
 
-The QR Scanner consists of two files.
+The QR Scanner consists of two main files. `qr-scanner.min.js` is the main API file which loads the worker script `qr-scanner-worker.min.js` via a dynamic import, only if needed. If you are not using a bundler like Rollup or Webpack that handles dynamic imports automatically, you might have to copy `qr-scanner-worker.min.js` over to your dist, next to `qr-scanner.min.js` or next to the script into which you're bundling `qr-scanner.min.js`.
 
-### Setting up the API
-
-`qr-scanner.min.js` is the main API as an es6 module and can be imported as follows:
+`qr-scanner.min.js` is an es6 module and can be imported as follows:
 ```js
 import QrScanner from 'path/to/qr-scanner.min.js'; // if using plain es6 import
 import QrScanner from 'qr-scanner'; // if installed via package and bundling with a module bundler like webpack or rollup
@@ -78,55 +76,6 @@ const QrScanner = require('path/to/qr-scanner.umd.min.js'); // if not installed 
 ```
 
 This library uses ECMAScript 2017 features like `async` functions. If you need to support old browsers, you can use `qr-scanner.legacy.min.js`, which is ECMAScript 2015 (ES6) compatible.
-
-### Setting up the worker
-
-`qr-scanner-worker.min.js` is a plain Javascript file for the separate worker thread and needs to be copied over to your project. You should then point `QrScanner.WORKER_PATH` to the location where it will be hosted:
-```js
-QrScanner.WORKER_PATH = 'path/to/qr-scanner-worker.min.js';
-```
-
-#### Webpack specific worker setup
-
-If you're using [Webpack](https://webpack.js.org/) to bundle your project, the [file-loader](https://webpack.js.org/loaders/file-loader/) or [raw-loader](https://webpack.js.org/loaders/raw-loader/) might be interesting for you for handling the `qr-scanner-worker.min.js` dependency. Which one to choose depends on your use case.
-
-##### Using file-loader
-
-The `file-loader` automatically copies the worker script into your build and provides the path where it will be located in the build. At runtime, the worker will then be lazy-loaded from there when needed. Due to its ability to lazy-load the worker, using the `file-loader` is the preferred approach if you do not expect the QR scanner to be used every time a user uses your app or if the QR scanner is not launched right after loading the app.
-
-You can add the `file-loader` to your project via:
-```bash
-npm install --save-dev file-loader
-# or
-yarn add --dev file-loader
-```
-
-You can then use it to copy the worker file and obtain the `WORKER_PATH`:
-```js
-import QrScannerWorkerPath from '!!file-loader!./node_modules/qr-scanner/qr-scanner-worker.min.js';
-QrScannerLib.WORKER_PATH = QrScannerWorkerPath;
-```
-
-Note that the path to the worker file has to be set relatively to the source file where you use it. For example, if your source file using the `QrScanner` sits in `/src/components`, the correct import would be `import QrScannerWorkerPath from '!!file-loader!../../node_modules/qr-scanner/qr-scanner-worker.min.js';`.
-
-##### Using raw-loader
-
-The `raw-loader` bundles the worker as string into your build, thus no separate file gets generated in your build output. While this simplifies the build output and avoids an additional network request, it increases your bundle size and removes the ability to lazy-load the worker file only when needed.
-
-You can add the `raw-loader` to your project via:
-```bash
-npm install --save-dev raw-loader
-# or
-yarn add --dev raw-loader
-```
-
-You can then use it to load the worker file and set the `WORKER_PATH`:
-```js
-import qrScannerWorkerSource from '!!raw-loader!./node_modules/qr-scanner/qr-scanner-worker.min.js';
-QrScanner.WORKER_PATH = URL.createObjectURL(new Blob([qrScannerWorkerSource]));
-```
-
-Note that the path to the worker file has to be set relatively to the source file where you use it. For example, if your source file using the `QrScanner` sits in `/src/components`, the correct import would be `import qrScannerWorkerSource from '!!raw-loader!../../node_modules/qr-scanner/qr-scanner-worker.min.js';`.
 
 ## Usage
 

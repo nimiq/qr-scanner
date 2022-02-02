@@ -1,8 +1,13 @@
 export default class QrScanner {
     static readonly DEFAULT_CANVAS_SIZE = 400;
     static readonly NO_QR_CODE_FOUND = 'No QR code found';
-    static WORKER_PATH = 'qr-scanner-worker.min.js';
     private static _disableBarcodeDetector = false;
+
+    /** @deprecated */
+    static set WORKER_PATH(workerPath: string) {
+        console.warn('Setting QrScanner.WORKER_PATH is not required and not supported anymore. '
+            + 'Have a look at the README for new setup instructions.');
+    }
 
     static async hasCamera(): Promise<boolean> {
         try {
@@ -606,12 +611,21 @@ export default class QrScanner {
         QrScanner._postWorkerMessage(this._qrEnginePromise, 'inversionMode', inversionMode);
     }
 
-    static async createQrEngine(workerPath: string = QrScanner.WORKER_PATH): Promise<Worker | BarcodeDetector> {
+    static async createQrEngine(): Promise<Worker | BarcodeDetector>;
+    /** @deprecated */
+    static async createQrEngine(workerPath: string): Promise<Worker | BarcodeDetector>;
+    static async createQrEngine(workerPath?: string): Promise<Worker | BarcodeDetector> {
+        if (workerPath) {
+            console.warn('Specifying a worker path is not required and not supported anymore.');
+        }
         const useNativeBarcodeDetector = !QrScanner._disableBarcodeDetector
             && ('BarcodeDetector' in window && BarcodeDetector.getSupportedFormats
                 ? (await BarcodeDetector.getSupportedFormats()).includes('qr_code')
                 : false);
-        return useNativeBarcodeDetector ? new BarcodeDetector({ formats: ['qr_code'] }) : new Worker(workerPath);
+        return useNativeBarcodeDetector
+            ? new BarcodeDetector({ formats: ['qr_code'] })
+            // @ts-ignore no types defined
+            : (import('./qr-scanner-worker.min.js') as Promise<{ default: Worker }>).then((module) => module.default);
     }
 
     private _onPlay(): void {

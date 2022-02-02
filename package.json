@@ -19,7 +19,7 @@
     "types/qr-scanner.d.ts"
   ],
   "scripts": {
-    "build": "rollup --config && tsc src/qr-scanner.ts --target esnext --declaration --declarationDir types --emitDeclarationOnly"
+    "build": "rollup --config && tsc src/qr-scanner.ts --target esnext --module esnext --declaration --declarationDir types --emitDeclarationOnly"
   },
   "repository": {
     "type": "git",
