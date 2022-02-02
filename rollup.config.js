@@ -22,71 +22,70 @@ function workerScriptToDynamicImport() {
     };
 }
 
-export default [{
-    // library
-    input: 'src/qr-scanner.ts',
-    external: ['./qr-scanner-worker.min.js'],
-    output: [{
-        file: 'qr-scanner.min.js',
-        format: 'esm',
-        interop: false,
-        sourcemap: true,
-    }, {
-        file: 'qr-scanner.umd.min.js',
-        format: 'umd',
-        name: 'QrScanner',
-        interop: false,
-        sourcemap: true,
-    }],
-    plugins: [
-        typescript({
-            target: 'ES2017',
-        }),
-        closureCompiler({
-            language_in: 'ECMASCRIPT_2017',
+export default () => [
+    ...([
+        // standard build specific settings
+        {
+            output: [{
+                file: 'qr-scanner.min.js',
+                format: 'esm',
+            }, {
+                file: 'qr-scanner.umd.min.js',
+                format: 'umd',
+                name: 'QrScanner',
+            }],
             language_out: 'ECMASCRIPT_2017',
-            rewrite_polyfills: false,
-        })
-    ]
-}, {
-    // library legacy build
-    input: 'src/qr-scanner.ts',
-    external: ['./qr-scanner-worker.min.js'],
-    output: [{
-        file: 'qr-scanner.legacy.min.js',
-        format: 'esm',
-        interop: false,
-        sourcemap: true,
-    }],
-    plugins: [
-        typescript({
-            target: 'ES2017',
-        }),
-        closureCompiler({
-            language_in: 'ECMASCRIPT_2017',
+        },
+        // legacy build specific settings
+        {
+            output: [{
+                file: 'qr-scanner.legacy.min.js',
+                format: 'esm',
+            }],
             language_out: 'ECMASCRIPT6',
-            rewrite_polyfills: false,
-        })
-    ]
-}, {
+        },
+    ].map((specificSettings) => ({
+        input: 'src/qr-scanner.ts',
+        // Note that this results in the dynamic import of the worker to also be a dynamic import in the umd build.
+        // However, umd builds do not support multiple chunks, so that's probably the best we can do, as js dynamic
+        // imports are now widely supported anyways.
+        external: ['./qr-scanner-worker.min.js'],
+        output: specificSettings.output.map((output) => ({
+            interop: false,
+            sourcemap: true,
+            ...output,
+        })),
+        plugins: [
+            typescript({
+                target: 'ES2017',
+            }),
+            closureCompiler({
+                language_in: 'ECMASCRIPT_2017',
+                language_out: specificSettings.language_out,
+                rewrite_polyfills: false,
+            })
+        ],
+    }))),
     // worker
-    input: 'src/worker.ts',
-    output: {
-        file: 'qr-scanner-worker.min.js',
-        format: 'iife',
-        interop: false,
-        sourcemap: true,
+    {
+        input: 'src/worker.ts',
+        output: {
+            file: 'qr-scanner-worker.min.js',
+            format: 'iife',
+            interop: false,
+            sourcemap: true,
+        },
+        plugins: [
+            typescript(),
+            sourcemaps(),
+            closureCompiler({
+                //compilation_level: 'ADVANCED',
+                //warning_level: 'QUIET',
+                language_in: 'ECMASCRIPT6',
+                language_out: 'ECMASCRIPT6',
+                rewrite_polyfills: false,
+            }),
+            workerScriptToDynamicImport(),
+        ]
     },
-    plugins: [
-        typescript(),
-        sourcemaps(),
-        closureCompiler({
-            //compilation_level: 'ADVANCED',
-            //warning_level: 'QUIET',
-            language_in: 'ECMASCRIPT6',
-            language_out: 'ECMASCRIPT6',
-            rewrite_polyfills: false,
-        }),
-        workerScriptToDynamicImport(),
-    ]
-}];
+];
