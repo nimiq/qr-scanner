@@ -1,3 +1,4 @@
+import alias from '@rollup/plugin-alias';
 import sourcemaps from 'rollup-plugin-sourcemaps';
 // ts config is a combination of tsconfig.json and overrides here. Type declarations file is generated separately via
 // tsc (see build script in package.json), because rollup can not emit multiple files if using output.file option.
@@ -23,55 +24,12 @@ function workerScriptToDynamicImport() {
 }
 
 export default () => [
-    ...([
-        // standard build specific settings
-        {
-            output: [{
-                file: 'qr-scanner.min.js',
-                format: 'esm',
-            }, {
-                file: 'qr-scanner.umd.min.js',
-                format: 'umd',
-                name: 'QrScanner',
-            }],
-            language_out: 'ECMASCRIPT_2017',
-        },
-        // legacy build specific settings
-        {
-            output: [{
-                file: 'qr-scanner.legacy.min.js',
-                format: 'esm',
-            }],
-            language_out: 'ECMASCRIPT6',
-        },
-    ].map((specificSettings) => ({
-        input: 'src/qr-scanner.ts',
-        // Note that this results in the dynamic import of the worker to also be a dynamic import in the umd build.
-        // However, umd builds do not support multiple chunks, so that's probably the best we can do, as js dynamic
-        // imports are now widely supported anyways.
-        external: ['./qr-scanner-worker.min.js'],
-        output: specificSettings.output.map((output) => ({
-            interop: false,
-            sourcemap: true,
-            ...output,
-        })),
-        plugins: [
-            typescript({
-                target: 'ES2017',
-            }),
-            closureCompiler({
-                language_in: 'ECMASCRIPT_2017',
-                language_out: specificSettings.language_out,
-                rewrite_polyfills: false,
-            })
-        ],
-    }))),
-    // worker
+    // worker; built first to be available for inlining in the legacy build
     {
         input: 'src/worker.ts',
         output: {
             file: 'qr-scanner-worker.min.js',
-            format: 'iife',
+            format: 'esm',
             interop: false,
             sourcemap: true,
         },
@@ -88,4 +46,57 @@ export default () => [
             workerScriptToDynamicImport(),
         ]
     },
+    ...([
+        // standard build specific settings
+        {
+            // Note that this results in the dynamic import of the worker to also be a dynamic import in the umd build.
+            // However, umd builds do not support multiple chunks, so that's probably the best we can do, as js dynamic
+            // imports are now widely supported anyways.
+            external: ['./qr-scanner-worker.min.js'],
+            output: [{
+                file: 'qr-scanner.min.js',
+                format: 'esm',
+            }, {
+                file: 'qr-scanner.umd.min.js',
+                format: 'umd',
+                name: 'QrScanner',
+            }],
+            language_out: 'ECMASCRIPT_2017',
+        },
+        // legacy build specific settings
+        {
+            aliases: {
+                // redirect to the built version in the dist folder
+                './qr-scanner-worker.min.js': '../qr-scanner-worker.min.js',
+            },
+            output: [{
+                file: 'qr-scanner.legacy.min.js',
+                format: 'esm',
+                // inline the worker as older browsers that already supported es6 did not support dynamic imports yet
+                inlineDynamicImports: true,
+            }],
+            language_out: 'ECMASCRIPT6',
+        },
+    ].map((specificSettings) => ({
+        input: 'src/qr-scanner.ts',
+        external: specificSettings.external,
+        output: specificSettings.output.map((output) => ({
+            interop: false,
+            sourcemap: true,
+            ...output,
+        })),
+        plugins: [
+            alias({
+                entries: specificSettings.aliases,
+            }),
+            typescript({
+                target: 'ES2017',
+            }),
+            closureCompiler({
+                language_in: 'ECMASCRIPT_2017',
+                language_out: specificSettings.language_out,
+                rewrite_polyfills: false,
+            })
+        ],
+    }))),
 ];
