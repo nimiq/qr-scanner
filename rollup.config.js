@@ -71,7 +71,9 @@ export default () => [
             },
             output: [{
                 file: 'qr-scanner.legacy.min.js',
-                format: 'esm',
+                // only providing a umd build and no esm build, as support for es modules is lower than es6 generally
+                format: 'umd',
+                name: 'QrScanner',
                 // inline the worker as older browsers that already supported es6 did not support dynamic imports yet
                 inlineDynamicImports: true,
             }],

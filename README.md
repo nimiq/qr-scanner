@@ -60,7 +60,7 @@ import('path/to/qr-scanner.min.js').then((module) => {
     // do something with QrScanner
 });
 ```
-- use `qr-scanner.umd.min.js` for direct usage as non-module script
+- use the [UMD build](https://github.com/umdjs/umd) `qr-scanner.umd.min.js` for direct usage as non-module script
 ```html
 <script src="path/to/qr-scanner.umd.min.js"></script>
 <script>
@@ -75,7 +75,7 @@ const QrScanner = require('path/to/qr-scanner.umd.min.js'); // if not installed 
 // do something with QrScanner
 ```
 
-This library uses ECMAScript 2017 features like `async` functions. If you need to support old browsers, you can use `qr-scanner.legacy.min.js`, which is ECMAScript 2015 (ES6) compatible. Note, that the legacy build is larger as it includes some polyfills and inlines the worker script to support browsers that don't support dynamic imports. The worker script however, will need to be loaded in legacy browsers anyway.
+This library uses ECMAScript 2017 features like `async` functions. If you need to support old browsers, you can use `qr-scanner.legacy.min.js`, which is ECMAScript 2015 (ES6) compatible. It's a UMD build and can be used as a replacement for `qr-scanner.umd.min.js`, see above. Note, that the legacy build is larger as it includes some polyfills and, to support browsers that don't support dynamic imports, inlines the worker script which however would be needed to be loaded in legacy browsers anyway. You will likely not need to use the legacy build though, as general browser support is already very good for the regular build. Especially if you want to scan from the device's camera, camera support by the browser is the stricter restriction.
 
 ## Usage
 
