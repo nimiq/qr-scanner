@@ -1,5 +1,5 @@
 /// <reference types="offscreencanvas" />
-export default class QrScanner {
+declare class QrScanner {
     static readonly DEFAULT_CANVAS_SIZE = 400;
     static readonly NO_QR_CODE_FOUND = "No QR code found";
     private static _disableBarcodeDetector;
@@ -120,4 +120,4 @@ declare class BarcodeDetector {
         cornerPoints: QrScanner.Point[];
     }>>;
 }
-export {};
+export default QrScanner;

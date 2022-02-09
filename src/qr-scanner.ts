@@ -1,4 +1,4 @@
-export default class QrScanner {
+class QrScanner {
     static readonly DEFAULT_CANVAS_SIZE = 400;
     static readonly NO_QR_CODE_FOUND = 'No QR code found';
     private static _disableBarcodeDetector = false;
@@ -1060,3 +1060,5 @@ declare class BarcodeDetector {
     static getSupportedFormats(): Promise<string[]>;
     detect(image: ImageBitmapSource): Promise<Array<{ rawValue: string, cornerPoints: QrScanner.Point[] }>>;
 }
+
+export default QrScanner;
