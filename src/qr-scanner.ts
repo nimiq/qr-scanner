@@ -338,7 +338,8 @@ class QrScanner {
     }
 
     async start(): Promise<void> {
-        if ((this._active && !this._paused) || this._destroyed) return;
+        if (this._destroyed) throw new Error('The QR scanner can not be started as it had been destroyed.');
+        if (this._active && !this._paused) return;
 
         if (window.location.protocol !== 'https:') {
             // warn but try starting the camera anyways

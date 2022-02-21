@@ -232,6 +232,7 @@ qrScanner.destroy();
 qrScanner = null;
 ```
 This will stop the camera stream and web worker and cleans up event listeners.
+The QR scanner will be dysfunctional after it has been destroyed.
 
 ## Build the project
 The project is prebuild in qr-scanner.min.js in combination with qr-scanner-worker.min.js. Building yourself is only necessary if you want to change the code in
