@@ -3,6 +3,7 @@ declare class QrScanner {
     static readonly DEFAULT_CANVAS_SIZE = 400;
     static readonly NO_QR_CODE_FOUND = "No QR code found";
     private static _disableBarcodeDetector;
+    private static _workerMessageId;
     /** @deprecated */
     static set WORKER_PATH(workerPath: string);
     static hasCamera(): Promise<boolean>;
@@ -84,6 +85,7 @@ declare class QrScanner {
     private static _loadImage;
     private static _awaitImageLoad;
     private static _postWorkerMessage;
+    private static _postWorkerMessageSync;
 }
 declare namespace QrScanner {
     interface ScanRegion {

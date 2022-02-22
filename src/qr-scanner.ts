@@ -2,6 +2,7 @@ class QrScanner {
     static readonly DEFAULT_CANVAS_SIZE = 400;
     static readonly NO_QR_CODE_FOUND = 'No QR code found';
     private static _disableBarcodeDetector = false;
+    private static _workerMessageId = 0;
 
     /** @deprecated */
     static set WORKER_PATH(workerPath: string) {
@@ -503,15 +504,16 @@ class QrScanner {
             if (qrEngine instanceof Worker) {
                 const qrEngineWorker = qrEngine; // for ts to know that it's still a worker later in the event listeners
                 if (!gotExternalEngine) {
-                    // Enable scanning of inverted color qr codes. Not using _postWorkerMessage as it's async
-                    qrEngineWorker.postMessage({ type: 'inversionMode', data: 'both' });
+                    // Enable scanning of inverted color qr codes.
+                    QrScanner._postWorkerMessageSync(qrEngineWorker, 'inversionMode', 'both');
                 }
                 detailedScanResult = await new Promise((resolve, reject) => {
                     let timeout: number;
                     let onMessage: (event: MessageEvent) => void;
                     let onError: (error: ErrorEvent | string) => void;
+                    let expectedResponseId = -1;
                     onMessage = (event: MessageEvent) => {
-                        if (event.data.type !== 'qrResult') {
+                        if (event.data.id !== expectedResponseId) {
                             return;
                         }
                         qrEngineWorker.removeEventListener('message', onMessage);
@@ -537,10 +539,12 @@ class QrScanner {
                     qrEngineWorker.addEventListener('error', onError);
                     timeout = setTimeout(() => onError('timeout'), 10000);
                     const imageData = canvasContext.getImageData(0, 0, canvas!.width, canvas!.height);
-                    qrEngineWorker.postMessage({
-                        type: 'decode',
-                        data: imageData
-                    }, [imageData.data.buffer]);
+                    expectedResponseId = QrScanner._postWorkerMessageSync(
+                        qrEngineWorker,
+                        'decode',
+                        imageData,
+                        [imageData.data.buffer],
+                    );
                 });
             } else {
                 detailedScanResult = await Promise.race([
@@ -1017,10 +1021,26 @@ class QrScanner {
         qrEngineOrQrEnginePromise: Worker | BarcodeDetector | Promise<Worker | BarcodeDetector>,
         type: string,
         data?: any,
-    ): Promise<void> {
-        const qrEngine = await qrEngineOrQrEnginePromise;
-        if (!(qrEngine instanceof Worker)) return;
-        qrEngine.postMessage({ type, data });
+        transfer?: Transferable[],
+    ): Promise<number> {
+        return QrScanner._postWorkerMessageSync(await qrEngineOrQrEnginePromise, type, data, transfer);
+    }
+
+    // sync version of _postWorkerMessage without performance overhead of async functions
+    private static _postWorkerMessageSync(
+        qrEngine: Worker | BarcodeDetector,
+        type: string,
+        data?: any,
+        transfer?: Transferable[],
+    ): number {
+        if (!(qrEngine instanceof Worker)) return -1;
+        const id = QrScanner._workerMessageId++;
+        qrEngine.postMessage({
+            id,
+            type,
+            data,
+        }, transfer);
+        return id;
     }
 }
 

@@ -166,7 +166,7 @@
         }
         QrScanner.scanImage(file, { returnDetailedScanResult: true })
             .then(result => setResult(fileQrResult, result))
-            .catch(e => setResult(fileQrResult, e || 'No QR code found.'));
+            .catch(e => setResult(fileQrResult, { data: e || 'No QR code found.' }));
     });
 </script>
 

@@ -18,12 +18,13 @@ let grayscaleWeights: GrayscaleWeights = {
 };
 
 self.onmessage = event => {
+    const id = event['data']['id'];
     const type = event['data']['type'];
     const data = event['data']['data'];
 
     switch (type) {
         case 'decode':
-            decode(data);
+            decode(data, id);
             break;
         case 'grayscaleWeights':
             setGrayscaleWeights(data);
@@ -38,7 +39,7 @@ self.onmessage = event => {
     }
 };
 
-function decode(data: { data: Uint8ClampedArray, width: number, height: number }): void {
+function decode(data: { data: Uint8ClampedArray, width: number, height: number }, requestId: number): void {
     const rgbaData = data['data'];
     const width = data['width'];
     const height = data['height'];
@@ -48,6 +49,7 @@ function decode(data: { data: Uint8ClampedArray, width: number, height: number }
     });
     if (!result) {
         (self as unknown as Worker).postMessage({
+            id: requestId,
             type: 'qrResult',
             data: null,
         });
@@ -55,6 +57,7 @@ function decode(data: { data: Uint8ClampedArray, width: number, height: number }
     }
 
     (self as unknown as Worker).postMessage({
+        id: requestId,
         type: 'qrResult',
         data: result.data,
         // equivalent to cornerPoints of native BarcodeDetector
