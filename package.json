@@ -1,6 +1,6 @@
 {
   "name": "qr-scanner",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "A javascript QR scanner library",
   "main": "qr-scanner.umd.min.js",
   "module": "qr-scanner.min.js",
