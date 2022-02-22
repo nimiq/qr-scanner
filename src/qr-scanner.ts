@@ -626,7 +626,8 @@ class QrScanner {
         return useNativeBarcodeDetector
             ? new BarcodeDetector({ formats: ['qr_code'] })
             // @ts-ignore no types defined
-            : (import('./qr-scanner-worker.min.js') as Promise<{ default: Worker }>).then((module) => module.default);
+            : (import('./qr-scanner-worker.min.js') as Promise<{ createWorker: () => Worker }>)
+                .then((module) => module.createWorker());
     }
 
     private _onPlay(): void {

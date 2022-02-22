@@ -15,9 +15,9 @@ function workerScriptToDynamicImport() {
                 if (chunk.type !== 'chunk') {
                     continue;
                 }
-                chunk.code = 'export default new Worker(URL.createObjectURL(new Blob([`'
+                chunk.code = 'export const createWorker=()=>new Worker(URL.createObjectURL(new Blob([`'
                     + chunk.code.replace(/`/g, '\\`').replace(/\${/g, '\\${')
-                    + '`]),{type: "application/javascript"}))';
+                    + '`]),{type:"application/javascript"}))';
             }
         },
     };
