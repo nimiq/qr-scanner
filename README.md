@@ -21,7 +21,7 @@ The development of this library is sponsored by [nimiq](https://www.nimiq.com), 
 
 
 ## Demo
-See https://nimiq.github.io/qr-scanner/demo/
+See [https://nimiq.github.io/qr-scanner/demo/](https://nimiq.github.io/qr-scanner/demo/)
 
 ## Installation
 
