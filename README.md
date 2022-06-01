@@ -89,7 +89,21 @@ Create a `<video>` element where the web cam video stream should get rendered:
 
 #### 2. Create a QrScanner Instance
 ```js
-const qrScanner = new QrScanner(videoElem, result => console.log('decoded qr code:', result), {});
+// To enforce the use of the new api with detailed scan results, call the constructor with an options object, see below.
+const qrScanner = new QrScanner(
+    videoElem,
+    result => console.log('decoded qr code:', result),
+    { /* your options or returnDetailedScanResult: true if you're not specifying any other options */ },
+);
+
+// For backwards compatibility, omitting the options object will currently use the old api, returning scan results as
+// simple strings. This old api will be removed in the next major release, by which point the options object is then
+// also not required anymore to enable the new api.
+const qrScanner = new QrScanner(
+    videoElem,
+    result => console.log('decoded qr code:', result),
+    // No options provided. This will use the old api and is deprecated in the current version until next major version.
+);
 ```
 
 As an optional third parameter an options object can be provided.
