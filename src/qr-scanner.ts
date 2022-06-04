@@ -70,6 +70,7 @@ class QrScanner {
     private _paused: boolean = false;
     private _flashOn: boolean = false;
     private _destroyed: boolean = false;
+    private _videoTrackConstraints?: MediaTrackConstraints;
 
     constructor(
         video: HTMLVideoElement,
@@ -84,6 +85,7 @@ class QrScanner {
             overlay?: HTMLDivElement,
             /** just a temporary flag until we switch entirely to the new api */
             returnDetailedScanResult?: true,
+            videoTrackConstraints?: MediaTrackConstraints,
         },
     );
     /** @deprecated */
@@ -117,6 +119,7 @@ class QrScanner {
             overlay?: HTMLDivElement,
             /** just a temporary flag until we switch entirely to the new api */
             returnDetailedScanResult?: true,
+            videoTrackConstraints?: MediaTrackConstraints,
         },
         canvasSizeOrCalculateScanRegion?: number | ((video: HTMLVideoElement) => QrScanner.ScanRegion),
         preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
@@ -164,6 +167,7 @@ class QrScanner {
         this._onLoadedMetaData = this._onLoadedMetaData.bind(this);
         this._onVisibilityChange = this._onVisibilityChange.bind(this);
         this._updateOverlay = this._updateOverlay.bind(this);
+        this._videoTrackConstraints = options.videoTrackConstraints;
 
         // @ts-ignore
         video.disablePictureInPicture = true;
@@ -869,7 +873,9 @@ class QrScanner {
 
         for (const constraints of [...constraintsWithCamera, ...constraintsWithoutCamera]) {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: constraints, audio: false });
+                // Allows tweaking aspect ration, width, etc.
+                const finalContraints = { constraints, ...this._videoTrackConstraints }
+                const stream = await navigator.mediaDevices.getUserMedia({ video: finalContraints, audio: false });
                 // Try to determine the facing mode from the stream, otherwise use a guess or 'environment' as
                 // default. Note that the guess is not always accurate as Safari returns cameras of different facing
                 // mode, even for exact facingMode constraints.
