@@ -874,7 +874,7 @@ class QrScanner {
         for (const constraints of [...constraintsWithCamera, ...constraintsWithoutCamera]) {
             try {
                 // Allows tweaking aspect ration, width, etc.
-                const finalContraints = { constraints, ...this._videoTrackConstraints }
+                const finalContraints = { ...constraints, ...this._videoTrackConstraints }
                 const stream = await navigator.mediaDevices.getUserMedia({ video: finalContraints, audio: false });
                 // Try to determine the facing mode from the stream, otherwise use a guess or 'environment' as
                 // default. Note that the guess is not always accurate as Safari returns cameras of different facing
