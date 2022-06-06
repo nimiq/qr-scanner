@@ -28,7 +28,7 @@ declare class QrScanner {
     constructor(video: HTMLVideoElement, onDecode: (result: QrScanner.ScanResult) => void, options: {
         onDecodeError?: (error: Error | string) => void;
         calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion;
-        preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId;
+        preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId | null;
         maxScansPerSecond?: number;
         highlightScanRegion?: boolean;
         highlightCodeOutline?: boolean;
@@ -37,9 +37,9 @@ declare class QrScanner {
         returnDetailedScanResult?: true;
     });
     /** @deprecated */
-    constructor(video: HTMLVideoElement, onDecode: (result: string) => void, onDecodeError?: (error: Error | string) => void, calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion, preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId);
+    constructor(video: HTMLVideoElement, onDecode: (result: string) => void, onDecodeError?: (error: Error | string) => void, calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion, preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId | null);
     /** @deprecated */
-    constructor(video: HTMLVideoElement, onDecode: (result: string) => void, onDecodeError?: (error: Error | string) => void, canvasSize?: number, preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId);
+    constructor(video: HTMLVideoElement, onDecode: (result: string) => void, onDecodeError?: (error: Error | string) => void, canvasSize?: number, preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId | null);
     /** @deprecated */
     constructor(video: HTMLVideoElement, onDecode: (result: string) => void, canvasSize?: number);
     hasFlash(): Promise<boolean>;

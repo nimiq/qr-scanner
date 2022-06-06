@@ -60,7 +60,7 @@ class QrScanner {
     private readonly _onDecode?: (result: QrScanner.ScanResult) => void;
     private readonly _legacyOnDecode?: (result: string) => void;
     private readonly _legacyCanvasSize: number = QrScanner.DEFAULT_CANVAS_SIZE;
-    private _preferredCamera: QrScanner.FacingMode | QrScanner.DeviceId = 'environment';
+    private _preferredCamera: QrScanner.FacingMode | QrScanner.DeviceId | null = 'environment';
     private readonly _maxScansPerSecond: number = 25;
     private _lastScanTimestamp: number = -1;
     private _scanRegion: QrScanner.ScanRegion;
@@ -77,7 +77,7 @@ class QrScanner {
         options: {
             onDecodeError?: (error: Error | string) => void,
             calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion,
-            preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
+            preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId | null,
             maxScansPerSecond?: number;
             highlightScanRegion?: boolean,
             highlightCodeOutline?: boolean,
@@ -92,7 +92,7 @@ class QrScanner {
         onDecode: (result: string) => void,
         onDecodeError?: (error: Error | string) => void,
         calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion,
-        preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
+        preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId | null,
     );
     /** @deprecated */
     constructor(
@@ -100,7 +100,7 @@ class QrScanner {
         onDecode: (result: string) => void,
         onDecodeError?: (error: Error | string) => void,
         canvasSize?: number,
-        preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
+        preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId | null,
     );
     /** @deprecated */
     constructor(video: HTMLVideoElement, onDecode: (result: string) => void, canvasSize?: number);
@@ -110,7 +110,7 @@ class QrScanner {
         canvasSizeOrOnDecodeErrorOrOptions?: number | ((error: Error | string) => void) | {
             onDecodeError?: (error: Error | string) => void,
             calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion,
-            preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
+            preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId | null,
             maxScansPerSecond?: number;
             highlightScanRegion?: boolean,
             highlightCodeOutline?: boolean,
@@ -119,7 +119,7 @@ class QrScanner {
             returnDetailedScanResult?: true,
         },
         canvasSizeOrCalculateScanRegion?: number | ((video: HTMLVideoElement) => QrScanner.ScanRegion),
-        preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
+        preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId | null,
     ) {
         this.$video = video;
         this.$canvas = document.createElement('canvas');
@@ -152,7 +152,10 @@ class QrScanner {
         this._calculateScanRegion = options.calculateScanRegion || (typeof canvasSizeOrCalculateScanRegion==='function'
             ? canvasSizeOrCalculateScanRegion
             : this._calculateScanRegion);
-        this._preferredCamera = options.preferredCamera || preferredCamera || this._preferredCamera;
+        if (options.preferredCamera == null)
+            this._preferredCamera = null;
+        else
+            this._preferredCamera = options.preferredCamera || preferredCamera || this._preferredCamera;
         this._legacyCanvasSize = typeof canvasSizeOrOnDecodeErrorOrOptions === 'number'
             ? canvasSizeOrOnDecodeErrorOrOptions
             : typeof canvasSizeOrCalculateScanRegion === 'number'
@@ -260,7 +263,9 @@ class QrScanner {
 
         video.addEventListener('play', this._onPlay);
         video.addEventListener('loadedmetadata', this._onLoadedMetaData);
-        document.addEventListener('visibilitychange', this._onVisibilityChange);
+        if (this._preferredCamera != null) {
+            document.addEventListener('visibilitychange', this._onVisibilityChange);
+        }
         window.addEventListener('resize', this._updateOverlay);
 
         this._qrEnginePromise = QrScanner.createQrEngine();
@@ -329,7 +334,9 @@ class QrScanner {
     destroy(): void {
         this.$video.removeEventListener('loadedmetadata', this._onLoadedMetaData);
         this.$video.removeEventListener('play', this._onPlay);
-        document.removeEventListener('visibilitychange', this._onVisibilityChange);
+        if (this._preferredCamera != null) {
+            document.removeEventListener('visibilitychange', this._onVisibilityChange);
+        }
         window.removeEventListener('resize', this._updateOverlay);
 
         this._destroyed = true;
@@ -342,7 +349,7 @@ class QrScanner {
         if (this._destroyed) throw new Error('The QR scanner can not be started as it had been destroyed.');
         if (this._active && !this._paused) return;
 
-        if (window.location.protocol !== 'https:') {
+        if (window.location.protocol !== 'https:' && this._preferredCamera != null) {
             // warn but try starting the camera anyways
             console.warn('The camera stream is only accessible if the page is transferred via https.');
         }
@@ -350,6 +357,13 @@ class QrScanner {
         this._active = true;
         if (document.hidden) return; // camera will be started as soon as tab is in foreground
         this._paused = false;
+
+        if (this._preferredCamera == null) {
+            // Let the user handle video state
+            this._scanFrame();
+            return;
+        }
+
         if (this.$video.srcObject) {
             // camera stream already/still set
             await this.$video.play();
@@ -387,11 +401,16 @@ class QrScanner {
     async pause(stopStreamImmediately = false): Promise<boolean> {
         this._paused = true;
         if (!this._active) return true;
-        this.$video.pause();
 
+        if (this._preferredCamera == null) {
+            return true;
+        }
+
+        this.$video.pause();
         if (this.$overlay) {
             this.$overlay.style.display = 'none';
         }
+
 
         const stopStream = () => {
             if (this.$video.srcObject instanceof MediaStream) {
@@ -853,6 +872,8 @@ class QrScanner {
     }
 
     private async _getCameraStream(): Promise<{ stream: MediaStream, facingMode: QrScanner.FacingMode }> {
+        if (this._preferredCamera == null) throw 'getCameraStream called on a in "no-camera" mode.';
+
         if (!navigator.mediaDevices) throw 'Camera not found.';
 
         const preferenceType = /^(environment|user)$/.test(this._preferredCamera)
