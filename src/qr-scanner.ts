@@ -64,7 +64,7 @@ class QrScanner {
     private readonly _maxScansPerSecond: number = 25;
     private _lastScanTimestamp: number = -1;
     private _scanRegion: QrScanner.ScanRegion;
-    private _codeOutlineHighlightRemovalTimeout?: number;
+    private _codeOutlineHighlightRemovalTimeout?: NodeJS.Timeout;
     private _qrEnginePromise: Promise<Worker | BarcodeDetector>
     private _active: boolean = false;
     private _paused: boolean = false;
@@ -508,7 +508,7 @@ class QrScanner {
                     QrScanner._postWorkerMessageSync(qrEngineWorker, 'inversionMode', 'both');
                 }
                 detailedScanResult = await new Promise((resolve, reject) => {
-                    let timeout: number;
+                    let timeout: NodeJS.Timeout;
                     let onMessage: (event: MessageEvent) => void;
                     let onError: (error: ErrorEvent | string) => void;
                     let expectedResponseId = -1;
@@ -821,7 +821,8 @@ class QrScanner {
                 }
 
                 if (this.$codeOutlineHighlight) {
-                    clearTimeout(this._codeOutlineHighlightRemovalTimeout);
+                    if (this._codeOutlineHighlightRemovalTimeout)
+                      clearTimeout(this._codeOutlineHighlightRemovalTimeout);
                     this._codeOutlineHighlightRemovalTimeout = undefined;
                     this.$codeOutlineHighlight.setAttribute(
                         'viewBox',
@@ -907,7 +908,7 @@ class QrScanner {
     private _setVideoMirror(facingMode: QrScanner.FacingMode): void {
         // in user facing mode mirror the video to make it easier for the user to position the QR code
         const scaleFactor = facingMode === 'user'? -1 : 1;
-        this.$video.style.transform = 'scaleX(' + scaleFactor + ')';
+        this.$video.style.transform = `${this.$video.style.transform} scaleX(${scaleFactor})`;
     }
 
     private _getFacingMode(videoStream: MediaStream): QrScanner.FacingMode | null {
