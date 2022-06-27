@@ -907,7 +907,7 @@ class QrScanner {
     private _setVideoMirror(facingMode: QrScanner.FacingMode): void {
         // in user facing mode mirror the video to make it easier for the user to position the QR code
         const scaleFactor = facingMode === 'user'? -1 : 1;
-        this.$video.style.transform = 'scaleX(' + scaleFactor + ')';
+        this.$video.style.transform = `${this.$video.style.transform} scaleX(${scaleFactor})`;
     }
 
     private _getFacingMode(videoStream: MediaStream): QrScanner.FacingMode | null {
