@@ -523,6 +523,7 @@ class QrScanner {
                             resolve({
                                 data: event.data.data,
                                 cornerPoints: QrScanner._convertPoints(event.data.cornerPoints, scanRegion),
+                                bytes: event.data.bytes
                             });
                         } else {
                             reject(QrScanner.NO_QR_CODE_FOUND);
@@ -559,6 +560,7 @@ class QrScanner {
                             return {
                                 data: scanResult.rawValue,
                                 cornerPoints: QrScanner._convertPoints(scanResult.cornerPoints, scanRegion),
+                                bytes: scanResult.rawValue.split('').map(c => c.charCodeAt(0)),
                             };
                         } catch (e) {
                             const errorMessage = (e as Error).message || e as string;
@@ -1073,6 +1075,7 @@ declare namespace QrScanner {
         data: string;
         // In clockwise order, starting at top left, but this might not be guaranteed in the future.
         cornerPoints: QrScanner.Point[];
+        bytes: Number[];
     }
 }
 
