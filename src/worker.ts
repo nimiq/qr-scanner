@@ -60,6 +60,9 @@ function decode(data: { data: Uint8ClampedArray, width: number, height: number }
         id: requestId,
         type: 'qrResult',
         data: result.data,
+        // jsQR doesn't return anything in data if it is binary, so we sometime
+        // need to use the raw binary value (also useful for other languages like Mandarin)
+        bytes: result.binaryData,
         // equivalent to cornerPoints of native BarcodeDetector
         cornerPoints: [
             result.location.topLeftCorner,
