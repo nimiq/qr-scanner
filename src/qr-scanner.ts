@@ -292,39 +292,36 @@ class QrScanner {
         return this._flashOn;
     }
 
-    async toggleFlash(): Promise<void> {
-        if (this._flashOn) {
-            await this.turnFlashOff();
-        } else {
-            await this.turnFlashOn();
-        }
-    }
-
-    async turnFlashOn(): Promise<void> {
-        if (this._flashOn || this._destroyed) return;
-        this._flashOn = true;
+    async turnFlashOnOff(onOff: boolean): Promise<void> {
+        if (this._flashOn == onOff || this._destroyed) return;
+        const oldFlashOn = this._flashOn
+        this._flashOn = onOff;
         if (!this._active || this._paused) return; // flash will be turned on later on .start()
         try {
             if (!await this.hasFlash()) throw 'No flash available';
             // Note that the video track is guaranteed to exist and to be a MediaStream due to the check in hasFlash
             await (this.$video.srcObject as MediaStream).getVideoTracks()[0].applyConstraints({
                 // @ts-ignore: constraint 'torch' is unknown to ts
-                advanced: [{ torch: true }],
+                advanced: [{ torch: onOff}],
             });
         } catch (e) {
-            this._flashOn = false;
+            this._flashOn = oldFlashOn ;
             throw e;
         }
     }
 
-    async turnFlashOff(): Promise<void> {
-        if (!this._flashOn) return;
-        // applyConstraints with torch: false does not work to turn the flashlight off, as a stream's torch stays
-        // continuously on, see https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints#torch. Therefore,
-        // we have to stop the stream to turn the flashlight off.
-        this._flashOn = false;
-        await this._restartVideoStream();
+    async toggleFlash(): Promise<void> {
+      await this.turnFlashOnOff(!this._flashOn);
     }
+
+    async turnFlashOn(): Promise<void> {
+      await this.turnFlashOnOff(true);
+    }
+
+    async turnFlashOff(): Promise<void> {
+      await this.turnFlashOnOff(false);
+    }
+
 
     destroy(): void {
         this.$video.removeEventListener('loadedmetadata', this._onLoadedMetaData);
