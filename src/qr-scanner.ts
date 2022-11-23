@@ -623,15 +623,37 @@ class QrScanner {
         if (workerPath) {
             console.warn('Specifying a worker path is not required and not supported anymore.');
         }
-        const useNativeBarcodeDetector = !QrScanner._disableBarcodeDetector
-            && ('BarcodeDetector' in window && BarcodeDetector.getSupportedFormats
-                ? (await BarcodeDetector.getSupportedFormats()).includes('qr_code')
-                : false);
-        return useNativeBarcodeDetector
-            ? new BarcodeDetector({ formats: ['qr_code'] })
-            // @ts-ignore no types defined
-            : (import('./qr-scanner-worker.min.js') as Promise<{ createWorker: () => Worker }>)
-                .then((module) => module.createWorker());
+
+        // @ts-ignore no types defined for import
+        const createWorker = () => (import('./qr-scanner-worker.min.js') as Promise<{ createWorker: () => Worker }>)
+            .then((module) => module.createWorker());
+
+        const useBarcodeDetector = !QrScanner._disableBarcodeDetector
+            && 'BarcodeDetector' in window
+            && BarcodeDetector.getSupportedFormats
+            && (await BarcodeDetector.getSupportedFormats()).includes('qr_code');
+
+        if (!useBarcodeDetector) return createWorker();
+
+        // On Macs with an M1/M2 processor and macOS Ventura (macOS version 13), the BarcodeDetector is broken in
+        // Chromium based browsers, regardless of the version. For that constellation, the BarcodeDetector does not
+        // error but does not detect QR codes. Macs without an M1/M2 or before Ventura are fine.
+        // See issue #209 and https://bugs.chromium.org/p/chromium/issues/detail?id=1382442
+        // TODO update this once the issue in macOS is fixed
+        const userAgentData = navigator.userAgentData;
+        const isChromiumOnMacWithArmVentura = userAgentData // all Chromium browsers support userAgentData
+            && userAgentData.brands.some(({ brand }) => /Chromium/i.test(brand))
+            && /mac ?OS/i.test(userAgentData.platform)
+            // Does it have an ARM chip (e.g. M1/M2) and Ventura? Check this last as getHighEntropyValues can
+            // theoretically trigger a browser prompt, although no browser currently does seem to show one.
+            // If browser or user refused to return the requested values, assume broken ARM Ventura, to be safe.
+            && await userAgentData.getHighEntropyValues(['architecture', 'platformVersion'])
+                .then(({ architecture, platformVersion }) =>
+                    /arm/i.test(architecture || 'arm') && parseInt(platformVersion || '13') >= /* Ventura */ 13)
+                .catch(() => true);
+        if (isChromiumOnMacWithArmVentura) return createWorker();
+
+        return new BarcodeDetector({ formats: ['qr_code'] });
     }
 
     private _onPlay(): void {
@@ -1081,6 +1103,23 @@ declare class BarcodeDetector {
     constructor(options?: { formats: string[] });
     static getSupportedFormats(): Promise<string[]>;
     detect(image: ImageBitmapSource): Promise<Array<{ rawValue: string, cornerPoints: QrScanner.Point[] }>>;
+}
+
+// simplified from https://github.com/lukewarlow/user-agent-data-types/blob/master/index.d.ts
+declare global {
+    interface Navigator {
+        readonly userAgentData?: {
+            readonly platform: string;
+            readonly brands: Array<{
+                readonly brand: string;
+                readonly version: string;
+            }>;
+            getHighEntropyValues(hints: string[]): Promise<{
+                readonly architecture?: string;
+                readonly platformVersion?: string;
+            }>;
+        };
+    }
 }
 
 export default QrScanner;
