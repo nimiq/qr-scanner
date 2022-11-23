@@ -147,7 +147,7 @@ If you want, you can stop scanning anytime and resume it by calling `start()` ag
 ### Single Image Scanning
 
 ```js
-QrScanner.scanImage(image)
+QrScanner.scanImage(image, { returnDetailedScanResult: true })
     .then(result => console.log(result))
     .catch(error => console.log(error || 'No QR code found.'));
 ```
