@@ -61,7 +61,7 @@ class QrScanner {
     private readonly _legacyOnDecode?: (result: string) => void;
     private readonly _legacyCanvasSize: number = QrScanner.DEFAULT_CANVAS_SIZE;
     private _preferredCamera: QrScanner.FacingMode | QrScanner.DeviceId = 'environment';
-    private readonly _maxScansPerSecond: number = 25;
+    private readonly _maxScansPerSecond: number = 4;
     private _lastScanTimestamp: number = -1;
     private _scanRegion: QrScanner.ScanRegion;
     private _codeOutlineHighlightRemovalTimeout?: number;
@@ -494,10 +494,13 @@ class QrScanner {
             let image: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap
                 | SVGImageElement;
             let canvasContext: CanvasRenderingContext2D;
-            [qrEngine, image] = await Promise.all([
-                qrEngine || QrScanner.createQrEngine(),
-                QrScanner._loadImage(imageOrFileOrBlobOrUrl),
-            ]);
+            
+              qrEngine = await qrEngine.then(value=> {
+                    return value;
+                });
+                qrEngine = await qrEngine === null ? QrScanner.createQrEngine() : qrEngine;
+                image = await QrScanner._loadImage(imageOrFileOrBlobOrUrl);
+            
             [canvas, canvasContext] = QrScanner._drawToCanvas(image, scanRegion, canvas, disallowCanvasResizing);
             let detailedScanResult: QrScanner.ScanResult;
 
