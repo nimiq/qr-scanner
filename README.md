@@ -238,13 +238,31 @@ qrScanner.turnFlashOff(); // turn the flash off if supported; async
 qrScanner.toggleFlash(); // toggle the flash if supported; async.
 ```
 
+### Using with shadowDom
+
+If you're working with a project with shadowDom's it's required to use the `domTarget` option.
+
+Set the reference to the shadowDom like shown below:
+
+```js
+const qrScanner = new QrScanner(
+    videoElem,
+    result => console.log('decoded qr code:', result),
+    { domTarget: this.shadowRoot,
+      returnDetailedScanResult: true
+    },
+);
+```
+
 ### Clean Up
 
 You can destroy the QR scanner if you don't need it anymore:
+
 ```js
 qrScanner.destroy();
 qrScanner = null;
 ```
+
 This will stop the camera stream and web worker and cleans up event listeners.
 The QR scanner will be dysfunctional after it has been destroyed.
 
