@@ -35,6 +35,7 @@ declare class QrScanner {
         overlay?: HTMLDivElement;
         /** just a temporary flag until we switch entirely to the new api */
         returnDetailedScanResult?: true;
+        domTarget?: HTMLDivElement;
     });
     /** @deprecated */
     constructor(video: HTMLVideoElement, onDecode: (result: string) => void, onDecodeError?: (error: Error | string) => void, calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion, preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId);

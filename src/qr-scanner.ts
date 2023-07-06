@@ -84,6 +84,7 @@ class QrScanner {
             overlay?: HTMLDivElement,
             /** just a temporary flag until we switch entirely to the new api */
             returnDetailedScanResult?: true,
+            domTarget?: HTMLDivElement,
         },
     );
     /** @deprecated */
@@ -117,6 +118,7 @@ class QrScanner {
             overlay?: HTMLDivElement,
             /** just a temporary flag until we switch entirely to the new api */
             returnDetailedScanResult?: true,
+            domTarget?: HTMLElement,
         },
         canvasSizeOrCalculateScanRegion?: number | ((video: HTMLVideoElement) => QrScanner.ScanRegion),
         preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
@@ -182,8 +184,10 @@ class QrScanner {
             video.hidden = false;
             shouldHideVideo = true;
         }
-        if (!document.body.contains(video)) {
-            document.body.appendChild(video);
+
+        const domTarget = options.domTarget || document.body;
+        if (!domTarget.contains(video)) {
+            domTarget.appendChild(video);
             shouldHideVideo = true;
         }
         const videoContainer = video.parentElement!;
